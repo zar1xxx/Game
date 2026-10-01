@@ -1,19 +1,20 @@
 [gd_scene load_steps=4 format=3 uid="uid://dm7448ocg0sm2"]
 
 [ext_resource type="Script" uid="uid://diaykcrtmttv8" path="res://scripts/moveCharacter.gd" id="1_qt2eu"]
-[ext_resource type="Texture2D" uid="uid://dr3pt4dc80jyk" path="res://icon.svg" id="2_50v30"]
+[ext_resource type="Texture2D" uid="uid://cwnqaycngpqqo" path="res://sprites/1552663843142981171.png" id="2_qt2eu"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_jtldb"]
-size = Vector2(126.5, 127)
+size = Vector2(113.25, 158.5)
 
 [node name="Car" type="CharacterBody2D"]
-position = Vector2(-386, 190)
 script = ExtResource("1_qt2eu")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(528, 112)
-texture = ExtResource("2_50v30")
+position = Vector2(19, 19)
+rotation = 3.14159
+scale = Vector2(0.309264, 0.304688)
+texture = ExtResource("2_qt2eu")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(528, 112)
+position = Vector2(18.625, 17.75)
 shape = SubResource("RectangleShape2D_jtldb")
