@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3 uid="uid://chjl8k7ar0njp"]
+
+[ext_resource type="Script" uid="uid://b6oki6d57d3hd" path="res://scripts/EnemyCar.gd" id="1_4c8y7"]
+[ext_resource type="Texture2D" uid="uid://bkldsgt70ujxw" path="res://sprites/pngegg.png" id="2_0nei0"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_u2lrs"]
+size = Vector2(54, 108)
+
+[node name="EnemyCar" type="CharacterBody2D"]
+script = ExtResource("1_4c8y7")
+max_speed = 400.0
+acceleration = 100.0
+
+[node name="Pngegg2" type="Sprite2D" parent="."]
+position = Vector2(506, 322)
+scale = Vector2(0.045, 0.045)
+texture = ExtResource("2_0nei0")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(506, 322)
+shape = SubResource("RectangleShape2D_u2lrs")
