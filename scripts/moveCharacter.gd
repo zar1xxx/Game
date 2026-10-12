@@ -1,5 +1,11 @@
 extends CharacterBody2D
 
+# --- Настройки топлива (Добавить в начало скрипта к переменным) ---
+@export var max_fuel: float = 100.0
+@export var fuel_consumption_rate: float = 10.0 # Базовый расход топлива в секунду
+@onready var fuel_bar: ProgressBar = %FuelBar
+
+var current_fuel: float = 100.0
 # --- Настройки движения ---
 @export var max_speed: float = 3000.0      # Максимальная скорость
 @export var acceleration: float = 200.0   # Постоянное ускорение в секунду
@@ -36,6 +42,11 @@ func _ready() -> void:
 	if health_bar:
 		health_bar.max_value = max_health
 		health_bar.value = current_health
+	
+	current_fuel = max_fuel
+	if fuel_bar:
+		fuel_bar.max_value = max_fuel
+		fuel_bar.value = current_fuel
 
 
 
@@ -61,10 +72,24 @@ func _physics_process(delta: float) -> void:
 		pass
 
 
-	# 4. Физика движения и дрифта
+		# 4. Физика движения и дрифта (Доработано: мягкая потеря скорости в повороте)
 	var forward_velocity = -transform.y * current_speed
 	velocity = velocity.lerp(forward_velocity, braking_friction * delta * 10)
-	current_speed = velocity.dot(-transform.y)
+	
+	# Вычисляем физическую скорость с учетом угла заноса
+	var drift_speed = velocity.dot(-transform.y)
+	
+	# --- НАСТРОЙКА ПЛАВНОСТИ (Новое) ---
+	# Коэффициент удержания скорости: 0.0 — скорость вообще не падает, 1.0 — падает как раньше.
+	# Значение 0.3 означает, что машина потеряет лишь 30% от стандартного падения скорости.
+	var turn_resistance: float = 0.5
+	
+	# Плавно смешиваем полную текущую скорость и скорость с учетом заноса
+	var calculated_speed = lerp(current_speed, drift_speed, turn_resistance)
+	
+	# Записываем результат, не позволяя скорости уйти в минус
+	current_speed = max(0.0, calculated_speed)
+
 
 	# 5. Встроенный метод Godot для перемещения с учетом коллизий
 	move_and_slide()
@@ -74,6 +99,31 @@ func _physics_process(delta: float) -> void:
 
 	# 7. Ограничение движения границами камеры
 	keep_inside_camera()
+	
+	# Расход топлива зависит от текущей скорости машины
+	# Если машина стоит (скорость 0), топливо не тратится. Если едет — тратится пропорционально скорости.
+	if current_speed > 0:
+		var speed_factor = current_speed / max_speed
+		current_fuel -= fuel_consumption_rate * speed_factor * delta
+		current_fuel = clamp(current_fuel, 0.0, max_fuel)
+		
+		if fuel_bar:
+			fuel_bar.value = current_fuel
+			
+		if current_fuel <= 0.0:
+			out_of_fuel()
+			
+func out_of_fuel() -> void:
+	print("Топливо закончилось!")
+	current_speed = 0.0
+	velocity = Vector2.ZERO
+	
+func add_fuel(amount: float) -> void:
+	current_fuel += amount
+	current_fuel = clamp(current_fuel, 0.0, max_fuel)
+	if fuel_bar:
+		fuel_bar.value = current_fuel
+	print("Топливо пополнено на: ", amount, " литров!")
 
 func get_input() -> void:
 	steer_direction = 0.0

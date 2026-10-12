@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=4 uid="uid://ck55t2hsgs5cb"]
+[gd_scene load_steps=14 format=4 uid="uid://ck55t2hsgs5cb"]
 
 [ext_resource type="PackedScene" uid="uid://dm7448ocg0sm2" path="res://scenes/car.tscn" id="1_6e84v"]
 [ext_resource type="Texture2D" uid="uid://dkghe66hqyjln" path="res://sprites/images.jpg" id="2_4dvvg"]
@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://chjl8k7ar0njp" path="res://scenes/EnemyCar.tscn" id="7_fws66"]
 [ext_resource type="Script" uid="uid://t8ejfdgxmfx4" path="res://scripts/Spawner.gd" id="8_hh0fu"]
 [ext_resource type="PackedScene" uid="uid://4wiaovh7r4i6" path="res://scenes/Wrench.tscn" id="9_3m5ht"]
+[ext_resource type="PackedScene" uid="uid://dh5l4g3udulvn" path="res://scenes/FuelCan.tscn" id="10_dubn7"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rnjyy"]
 texture = ExtResource("2_4dvvg")
@@ -1988,6 +1989,7 @@ script = ExtResource("5_04qyp")
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
 [node name="ScoreLabel" type="Label" parent="CanvasLayer"]
+unique_name_in_owner = true
 offset_left = 12.0
 offset_top = 19.0
 offset_right = 52.0
@@ -2004,16 +2006,26 @@ offset_bottom = 39.0
 scale = Vector2(1.36, 1.4)
 value = 90.0
 
+[node name="FuelBar" type="ProgressBar" parent="CanvasLayer"]
+unique_name_in_owner = true
+offset_left = 1104.0
+offset_top = 44.0
+offset_right = 1108.0
+offset_bottom = 71.0
+scale = Vector2(1.4, 1.4)
+value = 10.0
+
 [node name="EnemyCar" parent="." instance=ExtResource("7_fws66")]
 position = Vector2(-399, -327)
 
 [node name="EnemySpawner" type="Node2D" parent="."]
-position = Vector2(-1, 0)
 script = ExtResource("8_hh0fu")
-spawn_offset_y = -500.0
 
 [node name="SpawnTimer" type="Timer" parent="EnemySpawner"]
 autostart = true
 
 [node name="Wrench" parent="." instance=ExtResource("9_3m5ht")]
 position = Vector2(469, 188)
+
+[node name="FuelCan" parent="." instance=ExtResource("10_dubn7")]
+position = Vector2(661, 41)

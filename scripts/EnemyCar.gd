@@ -1,8 +1,8 @@
 extends CharacterBody2D
 
 # --- Настройки движения врага ---
-@export var max_speed: float = 800.0       
-@export var acceleration: float = 150.0     
+@export var max_speed: float = 400.0       
+@export var acceleration: float = 100.0     
 
 # --- Состояния машины врага ---
 enum States { DRIVING, KNOCKBACK, PAUSED, ACCELERATING }

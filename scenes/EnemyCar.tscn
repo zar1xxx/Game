@@ -8,8 +8,6 @@ size = Vector2(54, 108)
 
 [node name="EnemyCar" type="CharacterBody2D"]
 script = ExtResource("1_4c8y7")
-max_speed = 400.0
-acceleration = 100.0
 
 [node name="Pngegg2" type="Sprite2D" parent="."]
 position = Vector2(506, 322)
