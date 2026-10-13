@@ -2015,8 +2015,43 @@ offset_bottom = 71.0
 scale = Vector2(1.4, 1.4)
 value = 10.0
 
+[node name="GameOverScreen" type="Control" parent="CanvasLayer"]
+unique_name_in_owner = true
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BackGround" type="ColorRect" parent="CanvasLayer/GameOverScreen"]
+layout_mode = 0
+offset_right = 1161.0
+offset_bottom = 653.0
+color = Color(0, 0, 0, 0.705882)
+
+[node name="GameOverLabel" type="Label" parent="CanvasLayer/GameOverScreen"]
+layout_mode = 0
+offset_left = 330.0
+offset_top = 264.0
+offset_right = 863.0
+offset_bottom = 401.0
+theme_override_font_sizes/font_size = 100
+text = "GameOver"
+
+[node name="RestartButton" type="Button" parent="CanvasLayer/GameOverScreen"]
+layout_mode = 0
+offset_left = 445.0
+offset_top = 398.0
+offset_right = 703.0
+offset_bottom = 475.0
+theme_override_font_sizes/font_size = 50
+text = "Play Again"
+
 [node name="EnemyCar" parent="." instance=ExtResource("7_fws66")]
-position = Vector2(-399, -327)
+position = Vector2(-374, -311)
 
 [node name="EnemySpawner" type="Node2D" parent="."]
 script = ExtResource("8_hh0fu")

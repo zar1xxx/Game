@@ -1,5 +1,8 @@
 extends CharacterBody2D
 
+# --- Ссылка на экран Game Over (Добавить к остальным @onready переменным вверху) ---
+@onready var game_over_screen: Control = %GameOverScreen
+
 # --- Настройки топлива (Добавить в начало скрипта к переменным) ---
 @export var max_fuel: float = 100.0
 @export var fuel_consumption_rate: float = 10.0 # Базовый расход топлива в секунду
@@ -47,6 +50,12 @@ func _ready() -> void:
 	if fuel_bar:
 		fuel_bar.max_value = max_fuel
 		fuel_bar.value = current_fuel
+		
+	if game_over_screen:
+		game_over_screen.hide() # На всякий случай скрываем при старте
+		var restart_btn = game_over_screen.get_node("RestartButton")
+		if restart_btn:
+			restart_btn.pressed.connect(_on_restart_button_pressed)
 
 
 
@@ -117,6 +126,7 @@ func out_of_fuel() -> void:
 	print("Топливо закончилось!")
 	current_speed = 0.0
 	velocity = Vector2.ZERO
+	trigger_game_over("У вас закончилось топливо!")
 	
 func add_fuel(amount: float) -> void:
 	current_fuel += amount
@@ -238,6 +248,7 @@ func take_damage(amount: float) -> void:
 # Функция смерти игрока (Новое)
 func die() -> void:
 	print("Машина игрока полностью уничтожена!")
+	trigger_game_over("Ваш автомобиль полностью уничтожен!")
 	# Сюда можно вставить вызов экрана Game Over или перезапуск сцены:
 	# get_tree().reload_current_scene()
 
@@ -275,3 +286,30 @@ func heal_full() -> void:
 	if health_bar:
 		health_bar.value = current_health
 	print("Машина полностью отремонтирована гаечным ключом!")
+# --- НОВАЯ ЛОГИКА ЕДИНАЯ ДЛЯ ПРОИГРЫША ---
+func trigger_game_over(reason_text: String) -> void:
+	print(reason_text)
+	
+	# Полностью останавливаем машину
+	current_speed = 0.0
+	velocity = Vector2.ZERO
+	
+	# Активируем экран проигрыша
+	if game_over_screen:
+		game_over_screen.show()
+		
+		# Опционально: если вы хотите выводить причину проигрыша на экран, 
+		# можно менять текст GameOverLabel. Для этого раскомментируйте строки ниже:
+		# var label = game_over_screen.get_node("GameOverLabel")
+		# if label: label.text = reason_text + "\nГЕЙМ ОВЕР"
+		
+	# Ставим игру на физическую паузу, чтобы встречные машины перестали спавниться и ехать
+	get_tree().paused = true
+
+# Функция, которая сработает при нажатии на кнопку "Играть снова"
+func _on_restart_button_pressed() -> void:
+	# Снимаем игру с паузы перед перезапуском, иначе новый уровень тоже запустится замороженным!
+	get_tree().paused = false
+	
+	# Перезапускаем текущую сцену с нуля
+	get_tree().reload_current_scene()
