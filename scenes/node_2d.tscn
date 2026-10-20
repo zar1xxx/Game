@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=4 uid="uid://ck55t2hsgs5cb"]
+[gd_scene load_steps=17 format=4 uid="uid://ck55t2hsgs5cb"]
 
 [ext_resource type="PackedScene" uid="uid://dm7448ocg0sm2" path="res://scenes/car.tscn" id="1_6e84v"]
 [ext_resource type="Texture2D" uid="uid://dkghe66hqyjln" path="res://sprites/images.jpg" id="2_4dvvg"]
@@ -10,6 +10,8 @@
 [ext_resource type="Script" uid="uid://t8ejfdgxmfx4" path="res://scripts/Spawner.gd" id="8_hh0fu"]
 [ext_resource type="PackedScene" uid="uid://4wiaovh7r4i6" path="res://scenes/Wrench.tscn" id="9_3m5ht"]
 [ext_resource type="PackedScene" uid="uid://dh5l4g3udulvn" path="res://scenes/FuelCan.tscn" id="10_dubn7"]
+[ext_resource type="Script" uid="uid://burx3mtpkyk1j" path="res://scripts/HUD.gd" id="11_hud"]
+[ext_resource type="Script" uid="uid://deim5skoxah70" path="res://scripts/GameOver.gd" id="12_gover"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rnjyy"]
 texture = ExtResource("2_4dvvg")
@@ -1965,6 +1967,22 @@ texture = ExtResource("3_rnjyy")
 sources/0 = SubResource("TileSetAtlasSource_rnjyy")
 sources/3 = SubResource("TileSetAtlasSource_4vge2")
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hudpanel"]
+content_margin_left = 40.0
+content_margin_top = 24.0
+content_margin_right = 40.0
+content_margin_bottom = 24.0
+bg_color = Color(0.06, 0.07, 0.1, 0.9)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.98, 0.82, 0.2, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
 [node name="World" type="Node2D"]
 
 [node name="Car" parent="." instance=ExtResource("1_6e84v")]
@@ -1987,6 +2005,7 @@ y_sort_origin = -1
 script = ExtResource("5_04qyp")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
+script = ExtResource("11_hud")
 
 [node name="ScoreLabel" type="Label" parent="CanvasLayer"]
 unique_name_in_owner = true
@@ -2015,7 +2034,77 @@ offset_bottom = 71.0
 scale = Vector2(1.4, 1.4)
 value = 10.0
 
-[node name="GameOverScreen" type="Control" parent="CanvasLayer"]
+[node name="BestLabel" type="Label" parent="CanvasLayer"]
+unique_name_in_owner = true
+offset_left = 14.0
+offset_top = 58.0
+offset_right = 300.0
+offset_bottom = 86.0
+theme_override_colors/font_color = Color(0.85, 0.85, 0.9, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 20
+text = "Рекорд: 0"
+
+[node name="SpeedLabel" type="Label" parent="CanvasLayer"]
+unique_name_in_owner = true
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = -56.0
+offset_right = 260.0
+offset_bottom = -14.0
+grow_vertical = 0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 30
+text = "0 км/ч"
+
+[node name="HealthCaption" type="Label" parent="CanvasLayer"]
+offset_left = 960.0
+offset_top = 14.0
+offset_right = 1098.0
+offset_bottom = 40.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 18
+text = "Прочность"
+horizontal_alignment = 2
+
+[node name="FuelCaption" type="Label" parent="CanvasLayer"]
+offset_left = 960.0
+offset_top = 48.0
+offset_right = 1098.0
+offset_bottom = 74.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 18
+text = "Топливо"
+horizontal_alignment = 2
+
+[node name="CenterLabel" type="Label" parent="CanvasLayer"]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -160.0
+offset_right = 400.0
+offset_bottom = -40.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 14
+theme_override_font_sizes/font_size = 90
+text = "3"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PauseMenu" type="Control" parent="CanvasLayer"]
 unique_name_in_owner = true
 process_mode = 3
 visible = false
@@ -2026,29 +2115,147 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
+[node name="Dim" type="ColorRect" parent="CanvasLayer/PauseMenu"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Center" type="CenterContainer" parent="CanvasLayer/PauseMenu"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="CanvasLayer/PauseMenu/Center"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_hudpanel")
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/PauseMenu/Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="PauseTitle" type="Label" parent="CanvasLayer/PauseMenu/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.82, 0.2, 1)
+theme_override_font_sizes/font_size = 54
+text = "ПАУЗА"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="CanvasLayer/PauseMenu/Center/Panel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(340, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Продолжить"
+
+[node name="PauseRestartButton" type="Button" parent="CanvasLayer/PauseMenu/Center/Panel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(340, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Начать заново"
+
+[node name="PauseMenuButton" type="Button" parent="CanvasLayer/PauseMenu/Center/Panel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(340, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Главное меню"
+
+[node name="GameOverScreen" type="Control" parent="CanvasLayer"]
+unique_name_in_owner = true
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("12_gover")
+
 [node name="BackGround" type="ColorRect" parent="CanvasLayer/GameOverScreen"]
-layout_mode = 0
-offset_right = 1161.0
-offset_bottom = 653.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 color = Color(0, 0, 0, 0.705882)
 
-[node name="GameOverLabel" type="Label" parent="CanvasLayer/GameOverScreen"]
-layout_mode = 0
-offset_left = 330.0
-offset_top = 264.0
-offset_right = 863.0
-offset_bottom = 401.0
-theme_override_font_sizes/font_size = 100
-text = "GameOver"
+[node name="Center" type="CenterContainer" parent="CanvasLayer/GameOverScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="RestartButton" type="Button" parent="CanvasLayer/GameOverScreen"]
-layout_mode = 0
-offset_left = 445.0
-offset_top = 398.0
-offset_right = 703.0
-offset_bottom = 475.0
-theme_override_font_sizes/font_size = 50
-text = "Play Again"
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/GameOverScreen/Center"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="GameOverLabel" type="Label" parent="CanvasLayer/GameOverScreen/Center/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.35, 0.3, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 72
+text = "ИГРА ОКОНЧЕНА"
+horizontal_alignment = 1
+
+[node name="ReasonLabel" type="Label" parent="CanvasLayer/GameOverScreen/Center/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 22
+text = "Причина"
+horizontal_alignment = 1
+
+[node name="ScoreResult" type="Label" parent="CanvasLayer/GameOverScreen/Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "Ваш счёт: 0"
+horizontal_alignment = 1
+
+[node name="BestResult" type="Label" parent="CanvasLayer/GameOverScreen/Center/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.82, 0.2, 1)
+theme_override_font_sizes/font_size = 28
+text = "Рекорд: 0"
+horizontal_alignment = 1
+
+[node name="NewRecordLabel" type="Label" parent="CanvasLayer/GameOverScreen/Center/VBox"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 34
+text = "НОВЫЙ РЕКОРД!"
+horizontal_alignment = 1
+
+[node name="Buttons" type="HBoxContainer" parent="CanvasLayer/GameOverScreen/Center/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="RestartButton" type="Button" parent="CanvasLayer/GameOverScreen/Center/VBox/Buttons"]
+custom_minimum_size = Vector2(260, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Играть снова"
+
+[node name="MenuButton" type="Button" parent="CanvasLayer/GameOverScreen/Center/VBox/Buttons"]
+custom_minimum_size = Vector2(260, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Главное меню"
 
 [node name="EnemyCar" parent="." instance=ExtResource("7_fws66")]
 position = Vector2(-374, -311)

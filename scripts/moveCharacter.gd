@@ -2,6 +2,7 @@ extends CharacterBody2D
 
 # --- Ссылка на экран Game Over (Добавить к остальным @onready переменным вверху) ---
 @onready var game_over_screen: Control = %GameOverScreen
+@onready var sprite: Sprite2D = $Sprite2D
 
 # --- Настройки топлива (Добавить в начало скрипта к переменным) ---
 @export var max_fuel: float = 100.0
@@ -31,6 +32,25 @@ var is_invulnerable: bool = false # Защищен ли игрок в данны
 var active_acceleration: float = 100.0       # Текущее рабочее ускорение
 var is_fast_accelerating: bool = false       # Активен ли режим быстрого разгона
 
+# --- Ограничение урона за один удар ---
+# Раньше на большой скорости любое столкновение убивало мгновенно (3000 / 15 = 200 урона),
+# из-за чего полоска прочности и гаечные ключи теряли смысл.
+@export var max_damage_per_hit: float = 45.0
+@export var min_damage_per_hit: float = 8.0
+
+# --- Масляное пятно (занос) ---
+@export var slip_grip_multiplier: float = 0.12   # Во сколько раз падает сцепление на масле
+@export var slip_spin_speed: float = 0.8         # Скорость самопроизвольного разворота (рад/с)
+var slip_time_left: float = 0.0
+var slip_spin_dir: float = 1.0
+
+# --- Нитро ---
+@export var nitro_speed_multiplier: float = 1.35
+@export var nitro_acceleration: float = 1800.0
+var nitro_time_left: float = 0.0
+
+var is_dead: bool = false
+
 
 # --- Внутренние переменные ---
 var current_speed: float = 400.0
@@ -39,6 +59,8 @@ var current_health: float = 100.0         # Текущее здоровье ма
 
 func _ready() -> void:
 	add_to_group("player")
+	# Слой 2 — твёрдые препятствия (ограждения). Игрок с ними сталкивается, встречные машины — нет.
+	set_collision_mask_value(2, true)
 	active_acceleration = acceleration # По умолчанию используем обычное ускорение
 	
 	current_health = max_health
@@ -53,21 +75,37 @@ func _ready() -> void:
 		
 	if game_over_screen:
 		game_over_screen.hide() # На всякий случай скрываем при старте
-		var restart_btn = game_over_screen.get_node("RestartButton")
-		if restart_btn:
-			restart_btn.pressed.connect(_on_restart_button_pressed)
+		# Кнопки экрана проигрыша теперь обрабатывает скрипт GameOver.gd
 
 
 
 func _physics_process(delta: float) -> void:
+	if is_dead:
+		return
+
 	# 1. Считываем ввод игрока (только руление)
 	get_input()
 
-		# 2. Постоянное ускорение вперед (Доработано)
-	if current_speed < max_speed:
-		current_speed += active_acceleration * delta
+	# Таймеры эффектов
+	var effective_max_speed := max_speed
+	var accel := active_acceleration
+	if nitro_time_left > 0.0:
+		nitro_time_left -= delta
+		effective_max_speed = max_speed * nitro_speed_multiplier
+		accel = max(accel, nitro_acceleration)
+		if nitro_time_left <= 0.0:
+			sprite.modulate = Color.WHITE
+	var grip := braking_friction
+	if slip_time_left > 0.0:
+		slip_time_left -= delta
+		grip *= slip_grip_multiplier
+		rotation += slip_spin_dir * slip_spin_speed * delta
+
+	# 2. Постоянное ускорение вперед (после нитро скорость плавно возвращается к норме)
+	if current_speed < effective_max_speed:
+		current_speed = min(current_speed + accel * delta, effective_max_speed)
 	else:
-		current_speed = max_speed
+		current_speed = move_toward(current_speed, effective_max_speed, 800.0 * delta)
 
 
 		# 3. Расчет поворота колес (Доработано)
@@ -83,7 +121,7 @@ func _physics_process(delta: float) -> void:
 
 		# 4. Физика движения и дрифта (Доработано: мягкая потеря скорости в повороте)
 	var forward_velocity = -transform.y * current_speed
-	velocity = velocity.lerp(forward_velocity, braking_friction * delta * 10)
+	velocity = velocity.lerp(forward_velocity, clamp(grip * delta * 10, 0.0, 1.0))
 	
 	# Вычисляем физическую скорость с учетом угла заноса
 	var drift_speed = velocity.dot(-transform.y)
@@ -111,7 +149,7 @@ func _physics_process(delta: float) -> void:
 	
 	# Расход топлива зависит от текущей скорости машины
 	# Если машина стоит (скорость 0), топливо не тратится. Если едет — тратится пропорционально скорости.
-	if current_speed > 0:
+	if current_speed > 0 and not is_dead:
 		var speed_factor = current_speed / max_speed
 		current_fuel -= fuel_consumption_rate * speed_factor * delta
 		current_fuel = clamp(current_fuel, 0.0, max_fuel)
@@ -137,9 +175,10 @@ func add_fuel(amount: float) -> void:
 
 func get_input() -> void:
 	steer_direction = 0.0
-	if Input.is_action_pressed("ui_left"):
+	# Стрелки или A / D
+	if Input.is_action_pressed("ui_left") or Input.is_physical_key_pressed(KEY_A):
 		steer_direction -= 1.0
-	if Input.is_action_pressed("ui_right"):
+	if Input.is_action_pressed("ui_right") or Input.is_physical_key_pressed(KEY_D):
 		steer_direction += 1.0
 
 # Функция проверки столкновений (Новое)
@@ -151,14 +190,26 @@ func check_collisions() -> void:
 		var collision = get_slide_collision(i)
 		var collider = collision.get_collider()
 		
+		if collider and collider.is_in_group("obstacles"):
+			# Удар о твёрдое препятствие (ограждение)
+			var barrier_damage = clamp(abs(current_speed) / damage_divider, 2.0, max_damage_per_hit)
+			take_damage(barrier_damage)
+			shake_camera(14.0)
+			start_invulnerability()
+			current_speed *= 0.2
+			velocity = collision.get_normal() * 250.0
+			start_fast_acceleration()
+			break
+
 		if collider and collider.is_in_group("enemies"):
 			# Расчет урона (выполняется только если враг ехал навстречу)
 			var impact_force = abs(current_speed)
-			if "speed" in collider:
-				impact_force += abs(collider.speed)
-			
 			var damage = impact_force / damage_divider
+			damage = clamp(damage, min_damage_per_hit, max_damage_per_hit)
+			if "damage_multiplier" in collider:
+				damage *= collider.damage_multiplier
 			take_damage(damage)
+			shake_camera(10.0)
 			
 			# Включаем временную неуязвимость игрока
 			start_invulnerability()
@@ -196,6 +247,36 @@ func start_fast_acceleration() -> void:
 	active_acceleration = acceleration
 	is_fast_accelerating = false
 
+
+
+## Небольшие препятствия (конусы, ямы): урон, потеря скорости, тряска камеры
+func hit_hazard(damage: float, speed_multiplier: float, shake: float = 6.0) -> void:
+	if is_dead:
+		return
+	take_damage(damage)
+	current_speed *= speed_multiplier
+	shake_camera(shake)
+
+
+## Масляное пятно: машину заносит в случайную сторону
+func apply_slip(duration: float) -> void:
+	if is_dead:
+		return
+	slip_time_left = duration
+	slip_spin_dir = -1.0 if randf() < 0.5 else 1.0
+	shake_camera(3.0)
+
+
+## Бонус нитро
+func start_nitro(duration: float) -> void:
+	nitro_time_left = duration
+	sprite.modulate = Color(0.6, 0.9, 1.6)
+
+
+func shake_camera(amount: float) -> void:
+	var camera = get_viewport().get_camera_2d()
+	if camera and camera.has_method("shake"):
+		camera.shake(amount)
 
 
 func start_invulnerability() -> void:
@@ -288,28 +369,29 @@ func heal_full() -> void:
 	print("Машина полностью отремонтирована гаечным ключом!")
 # --- НОВАЯ ЛОГИКА ЕДИНАЯ ДЛЯ ПРОИГРЫША ---
 func trigger_game_over(reason_text: String) -> void:
+	# Защита от двойного вызова (например, кончилось топливо и машина разбилась в одном кадре)
+	if is_dead:
+		return
+	is_dead = true
 	print(reason_text)
-	
+
 	# Полностью останавливаем машину
 	current_speed = 0.0
 	velocity = Vector2.ZERO
-	
+
+	# Сохраняем результат заезда
+	var score := 0
+	var counter = get_node_or_null("scoreComponent")
+	if counter:
+		score = counter.max_score
+	var is_new_record := SaveManager.finish_run(score)
+
 	# Активируем экран проигрыша
 	if game_over_screen:
-		game_over_screen.show()
-		
-		# Опционально: если вы хотите выводить причину проигрыша на экран, 
-		# можно менять текст GameOverLabel. Для этого раскомментируйте строки ниже:
-		# var label = game_over_screen.get_node("GameOverLabel")
-		# if label: label.text = reason_text + "\nГЕЙМ ОВЕР"
-		
-	# Ставим игру на физическую паузу, чтобы встречные машины перестали спавниться и ехать
-	get_tree().paused = true
+		if game_over_screen.has_method("show_result"):
+			game_over_screen.show_result(reason_text, score, SaveManager.best_score, is_new_record)
+		else:
+			game_over_screen.show()
 
-# Функция, которая сработает при нажатии на кнопку "Играть снова"
-func _on_restart_button_pressed() -> void:
-	# Снимаем игру с паузы перед перезапуском, иначе новый уровень тоже запустится замороженным!
-	get_tree().paused = false
-	
-	# Перезапускаем текущую сцену с нуля
-	get_tree().reload_current_scene()
+	# Ставим игру на паузу, чтобы встречные машины перестали спавниться и ехать
+	get_tree().paused = true

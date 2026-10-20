@@ -29,6 +29,9 @@ var player: Node2D = null
 var generated_chunks: Dictionary = {}
 
 func _ready() -> void:
+	# Дорога генерируется даже во время паузы (например, во время отсчёта перед стартом),
+	# чтобы игрок не видел пустой экран
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	# Автоматически добавляем игрока в группу через код, если забыли в интерфейсе
 	var players = get_tree().get_nodes_in_group("player")
 	if players.size() > 0:
