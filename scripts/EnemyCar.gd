@@ -13,6 +13,11 @@ enum Behavior { NORMAL, ZIGZAG, TRUCK }
 @export var zigzag_amplitude: float = 260.0   # Скорость бокового смещения лихача
 @export var zigzag_frequency: float = 2.2
 
+# Границы, за которые «лихач» не уезжает (позиция корня узла по X).
+# Спавнер выставляет их по краям дороги; по умолчанию ограничений нет.
+var min_x: float = -INF
+var max_x: float = INF
+
 # Множитель урона, который получает игрок при столкновении с этой машиной
 var damage_multiplier: float = 1.0
 
@@ -71,7 +76,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	if behavior == Behavior.ZIGZAG:
 		# Не даём лихачу уехать за пределы дороги
-		global_position.x = clamp(global_position.x, -460.0, 600.0)
+		global_position.x = clamp(global_position.x, min_x, max_x)
 	keep_clean_outside_screen()
 
 # Функция получения удара (Доработано: зависит от скорости игрока)

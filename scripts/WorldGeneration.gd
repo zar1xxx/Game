@@ -14,9 +14,8 @@ const CHUNK_SIZE: int = 16
 # ШИРИНА ОДНОЙ ПОЛОСЫ ДОРОГИ (в тайлах) между линиями разметки
 @export var lane_width: int = 11
 
-# Константы для тайлов дороги (укажите свои координаты из TileSet)
-# Назначаем индивидуальный ID источника для каждого типа тайла
-const SOURCE_ROAD_ID = 0      # Асфальт берем из источника 1
+# Константы для тайлов дороги (ID источников и координаты из TileSet в node_2d.tscn)
+const SOURCE_ROAD_ID = 0      # Асфальт берем из источника 0
 const TILE_ROAD = Vector2i(0, 0) 
 
 const SOURCE_MARKING_ID = 3   # Разметку берем из источника 3
@@ -32,7 +31,7 @@ func _ready() -> void:
 	# Дорога генерируется даже во время паузы (например, во время отсчёта перед стартом),
 	# чтобы игрок не видел пустой экран
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	# Автоматически добавляем игрока в группу через код, если забыли в интерфейсе
+	# Игрок сам добавляет себя в группу "player" (см. moveCharacter.gd)
 	var players = get_tree().get_nodes_in_group("player")
 	if players.size() > 0:
 		player = players[0]
@@ -78,8 +77,8 @@ func generate_chunk(chunk_pos: Vector2i) -> void:
 					# Рисуем разметку: передаем SOURCE_MARKING_ID (3)
 					set_cell(Vector2i(x, y), SOURCE_MARKING_ID, TILE_MARKING)
 				else:
-					# Пропуск разметки (асфальт): передаем SOURCE_ROAD_ID (1)
+					# Пропуск разметки (асфальт): передаем SOURCE_ROAD_ID (0)
 					set_cell(Vector2i(x, y), SOURCE_ROAD_ID, TILE_ROAD)
 			else:
-				# Обычные полосы (асфальт): передаем SOURCE_ROAD_ID (1)
+				# Обычные полосы (асфальт): передаем SOURCE_ROAD_ID (0)
 				set_cell(Vector2i(x, y), SOURCE_ROAD_ID, TILE_ROAD)

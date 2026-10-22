@@ -32,13 +32,9 @@ extends Node2D
 @export var road_left_x: float = 80.0
 @export var road_right_x: float = 1080.0
 
-# Смещение спрайта внутри сцены объекта (спрайт врага нарисован в точке 506,
-# у ключа и канистры — около 36). Нужно, чтобы объекты появлялись точно на дороге.
-const VISUAL_OFFSET_X := {
-	"enemy": 506.0,
-	"wrench": 36.0,
-	"fuel": 38.0,
-}
+# В некоторых сценах спрайт сдвинут относительно корня (у встречной машины он в точке 506,
+# у ключа и канистры — около 36). Смещение вычисляется автоматически по позиции Sprite2D
+# (см. visual_offset_x), поэтому при замене спрайта ничего в коде править не нужно.
 
 # Таблица препятствий: вес (как часто) и счёт, с которого открывается
 var hazard_table: Array = [
@@ -97,15 +93,15 @@ func _on_spawn_timer_timeout() -> void:
 	# 1. Бонусы
 	var r := randf()
 	if r < wrench_spawn_chance:
-		_spawn_simple(wrench_scene, "wrench", spawn_y)
+		_spawn_simple(wrench_scene, spawn_y)
 		return
 	r -= wrench_spawn_chance
 	if r < fuel_spawn_chance:
-		_spawn_simple(fuel_scene, "fuel", spawn_y)
+		_spawn_simple(fuel_scene, spawn_y)
 		return
 	r -= fuel_spawn_chance
 	if current_score >= 15 and r < nitro_spawn_chance:
-		_spawn_simple(nitro_scene, "", spawn_y)
+		_spawn_simple(nitro_scene, spawn_y)
 		return
 
 	# 2. Препятствия
@@ -119,9 +115,9 @@ func _on_spawn_timer_timeout() -> void:
 		"cones":
 			_spawn_cone_row(spawn_y)
 		"pothole":
-			_spawn_simple(pothole_scene, "", spawn_y)
+			_spawn_simple(pothole_scene, spawn_y)
 		"oil":
-			_spawn_simple(oil_scene, "", spawn_y)
+			_spawn_simple(oil_scene, spawn_y)
 		"barrier":
 			_spawn_barrier(spawn_y)
 		"gate":
@@ -150,19 +146,28 @@ func _random_road_x(margin: float = 0.0) -> float:
 	return randf_range(road_left_x + margin, road_right_x - margin)
 
 
-func _add(obj: Node, center_x: float, y: float, offset_key: String = "") -> void:
-	var offset: float = VISUAL_OFFSET_X.get(offset_key, 0.0)
+## Насколько видимая часть объекта (его Sprite2D) сдвинута по X относительно корня сцены.
+## Если спрайта нет (объект рисуется кодом в _draw), смещение равно нулю.
+static func visual_offset_x(node: Node) -> float:
+	for child in node.get_children():
+		if child is Sprite2D:
+			return child.position.x
+	return 0.0
+
+
+## Ставит объект так, чтобы его видимая часть оказалась в точке center_x
+func _add(obj: Node, center_x: float, y: float) -> void:
 	var node := obj as Node2D
 	if node == null:
 		return
-	node.global_position = Vector2(center_x - offset, y)
+	node.global_position = Vector2(center_x - visual_offset_x(node), y)
 	get_tree().current_scene.add_child(node)
 
 
-func _spawn_simple(scene: PackedScene, offset_key: String, y: float) -> void:
+func _spawn_simple(scene: PackedScene, y: float) -> void:
 	if scene == null:
 		return
-	_add(scene.instantiate(), _random_road_x(40.0), y, offset_key)
+	_add(scene.instantiate(), _random_road_x(40.0), y)
 
 
 func _spawn_enemy(y: float, behavior: int) -> void:
@@ -174,13 +179,20 @@ func _spawn_enemy(y: float, behavior: int) -> void:
 	if "max_speed" in enemy:
 		enemy.max_speed += last_difficulty_milestone * enemy_speed_step
 
+	# Границы дороги для «лихача» в координатах корня машины
+	var offset := visual_offset_x(enemy)
+	if "min_x" in enemy:
+		enemy.min_x = road_left_x - offset
+		enemy.max_x = road_right_x - offset
+
 	var x := _random_road_x(30.0)
 	# Часть машин появляется прямо на полосе игрока
 	if behavior == 0 and randf() < target_player_chance:
 		var player := get_tree().get_first_node_in_group("player") as Node2D
 		if player:
-			x = clamp(player.global_position.x + 19.0, road_left_x, road_right_x)
-	_add(enemy, x, y, "enemy")
+			var player_x := player.global_position.x + visual_offset_x(player)
+			x = clamp(player_x, road_left_x, road_right_x)
+	_add(enemy, x, y)
 
 
 func _spawn_cone_row(y: float) -> void:

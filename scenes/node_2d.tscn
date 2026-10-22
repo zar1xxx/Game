@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=4 uid="uid://ck55t2hsgs5cb"]
+[gd_scene load_steps=14 format=4 uid="uid://ck55t2hsgs5cb"]
 
 [ext_resource type="PackedScene" uid="uid://dm7448ocg0sm2" path="res://scenes/car.tscn" id="1_6e84v"]
 [ext_resource type="Texture2D" uid="uid://dkghe66hqyjln" path="res://sprites/images.jpg" id="2_4dvvg"]
@@ -6,10 +6,7 @@
 [ext_resource type="Script" uid="uid://chui2a6sptwa1" path="res://scripts/ScoreCounter.gd" id="2_j7wrs"]
 [ext_resource type="Texture2D" uid="uid://ba60r5latx8vn" path="res://sprites/images1.jpg" id="3_rnjyy"]
 [ext_resource type="Script" uid="uid://n5fbkqpcfn5n" path="res://scripts/WorldGeneration.gd" id="5_04qyp"]
-[ext_resource type="PackedScene" uid="uid://chjl8k7ar0njp" path="res://scenes/EnemyCar.tscn" id="7_fws66"]
 [ext_resource type="Script" uid="uid://t8ejfdgxmfx4" path="res://scripts/Spawner.gd" id="8_hh0fu"]
-[ext_resource type="PackedScene" uid="uid://4wiaovh7r4i6" path="res://scenes/Wrench.tscn" id="9_3m5ht"]
-[ext_resource type="PackedScene" uid="uid://dh5l4g3udulvn" path="res://scenes/FuelCan.tscn" id="10_dubn7"]
 [ext_resource type="Script" uid="uid://burx3mtpkyk1j" path="res://scripts/HUD.gd" id="11_hud"]
 [ext_resource type="Script" uid="uid://deim5skoxah70" path="res://scripts/GameOver.gd" id="12_gover"]
 
@@ -2062,10 +2059,10 @@ theme_override_font_sizes/font_size = 30
 text = "0 км/ч"
 
 [node name="HealthCaption" type="Label" parent="CanvasLayer"]
-offset_left = 960.0
-offset_top = 14.0
-offset_right = 1098.0
-offset_bottom = 40.0
+offset_left = 936.0
+offset_top = 20.0
+offset_right = 1074.0
+offset_bottom = 46.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 18
@@ -2073,9 +2070,9 @@ text = "Прочность"
 horizontal_alignment = 2
 
 [node name="FuelCaption" type="Label" parent="CanvasLayer"]
-offset_left = 960.0
+offset_left = 931.0
 offset_top = 48.0
-offset_right = 1098.0
+offset_right = 1069.0
 offset_bottom = 74.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
@@ -2257,17 +2254,8 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "Главное меню"
 
-[node name="EnemyCar" parent="." instance=ExtResource("7_fws66")]
-position = Vector2(-374, -311)
-
 [node name="EnemySpawner" type="Node2D" parent="."]
 script = ExtResource("8_hh0fu")
 
 [node name="SpawnTimer" type="Timer" parent="EnemySpawner"]
 autostart = true
-
-[node name="Wrench" parent="." instance=ExtResource("9_3m5ht")]
-position = Vector2(469, 188)
-
-[node name="FuelCan" parent="." instance=ExtResource("10_dubn7")]
-position = Vector2(661, 41)

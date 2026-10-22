@@ -2,7 +2,8 @@ extends Node
 ## Глобальный менеджер сохранений (Autoload "SaveManager").
 ## Хранит рекорд и статистику в файле user://savegame.cfg,
 ## поэтому данные не теряются после выхода из игры.
-## На Windows файл лежит в %APPDATA%\Godot\app_userdata\Game\savegame.cfg
+## На Windows файл лежит в %APPDATA%\Godot\app_userdata\GameNew\savegame.cfg
+## (имя папки берётся из названия проекта, application/config/name в project.godot)
 
 signal best_score_changed(new_best: int)
 

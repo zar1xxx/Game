@@ -1,6 +1,7 @@
 extends CanvasLayer
 ## Интерфейс во время гонки: рекорд, скорость, полоски прочности и топлива,
 ## отсчёт перед стартом, пауза и всплывающие сообщения.
+## Пауза включается клавишей Esc, кнопкой «II» на экране или кнопкой «Назад» на Android.
 
 const MENU_SCENE := "res://scenes/MainMenu.tscn"
 
@@ -21,6 +22,7 @@ var _counting_down: bool = false
 var _blink_time: float = 0.0
 var _health_fill: StyleBoxFlat
 var _fuel_fill: StyleBoxFlat
+var _pause_button: Button
 
 
 func _ready() -> void:
@@ -36,6 +38,7 @@ func _ready() -> void:
 	pause_menu_button.pressed.connect(_on_menu_pressed)
 
 	_style_bars()
+	_create_pause_button()
 
 	var counter = get_tree().get_first_node_in_group("score_counter")
 	if counter:
@@ -87,12 +90,40 @@ func _process(delta: float) -> void:
 		fuel_bar.modulate = Color.WHITE
 
 
+## Кнопка паузы для сенсорных экранов (создаётся кодом, чтобы не трогать сцену уровня)
+func _create_pause_button() -> void:
+	_pause_button = Button.new()
+	_pause_button.name = "PauseButton"
+	_pause_button.text = "II"
+	_pause_button.focus_mode = Control.FOCUS_NONE  # чтобы пробел/Enter не нажимали её случайно
+	_pause_button.add_theme_font_size_override("font_size", 28)
+	_pause_button.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_pause_button.offset_left = -32.0
+	_pause_button.offset_right = 32.0
+	_pause_button.offset_top = 10.0
+	_pause_button.offset_bottom = 66.0
+	_pause_button.pressed.connect(_request_pause)
+	add_child(_pause_button)
+	# Кнопка должна быть под меню паузы, а не поверх него
+	move_child(_pause_button, pause_menu.get_index())
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
-		if _counting_down or (player and player.is_dead):
-			return
-		_toggle_pause()
+		_request_pause()
 		get_viewport().set_input_as_handled()
+
+
+func _notification(what: int) -> void:
+	# Кнопка «Назад» на Android работает как Esc
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		_request_pause()
+
+
+func _request_pause() -> void:
+	if _counting_down or (player and player.is_dead):
+		return
+	_toggle_pause()
 
 
 func _toggle_pause() -> void:

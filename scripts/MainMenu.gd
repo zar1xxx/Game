@@ -70,3 +70,10 @@ func _on_reset_pressed() -> void:
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()
+
+
+func _notification(what: int) -> void:
+	# Кнопка «Назад» на Android в главном меню закрывает игру
+	# (автоматический выход по «Назад» отключён в настройках проекта, чтобы во время гонки она ставила паузу)
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		get_tree().quit()

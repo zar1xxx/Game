@@ -1,10 +1,10 @@
 extends CharacterBody2D
 
-# --- Ссылка на экран Game Over (Добавить к остальным @onready переменным вверху) ---
+# --- Ссылки на узлы ---
 @onready var game_over_screen: Control = %GameOverScreen
 @onready var sprite: Sprite2D = $Sprite2D
 
-# --- Настройки топлива (Добавить в начало скрипта к переменным) ---
+# --- Настройки топлива ---
 @export var max_fuel: float = 100.0
 @export var fuel_consumption_rate: float = 10.0 # Базовый расход топлива в секунду
 @onready var fuel_bar: ProgressBar = %FuelBar
@@ -16,20 +16,20 @@ var current_fuel: float = 100.0
 @export var steering_angle: float = 1000.0  # Сила поворота (в градусах)
 @export var braking_friction: float = 2.0 # Трение при торможении/дрифте
 
-# --- Настройки прочности (Новое) ---
+# --- Настройки прочности ---
 @export var max_health: float = 100.0      # Максимальная прочность машины
 @export var damage_divider: float = 15.0   # Делитель урона (чем выше, тем меньше урона наносится при ударе)
 
-# --- Ссылки на интерфейс (Новое) ---
+# --- Ссылки на интерфейс ---
 @onready var health_bar: ProgressBar = %HealthBar
 
-@export var post_hit_invulnerability_time: float = 0.3 # Время неуязвимости в секундах (например, полсекунды)
+@export var post_hit_invulnerability_time: float = 0.3 # Время неуязвимости после удара, в секундах
 var is_invulnerable: bool = false # Защищен ли игрок в данный момент
 
-@export var fast_acceleration: float = 1000.0 # Временное ускорение после аварии (обычное 100.0)
+@export var fast_acceleration: float = 1000.0 # Временное ускорение после аварии (обычное — acceleration)
 @export var fast_accel_duration: float = 1.5  # Сколько секунд действует быстрое ускорение
 
-var active_acceleration: float = 100.0       # Текущее рабочее ускорение
+var active_acceleration: float = 0.0         # Текущее рабочее ускорение (задаётся в _ready)
 var is_fast_accelerating: bool = false       # Активен ли режим быстрого разгона
 
 # --- Ограничение урона за один удар ---
@@ -51,11 +51,16 @@ var nitro_time_left: float = 0.0
 
 var is_dead: bool = false
 
+# --- Сенсорное управление (Android) ---
+# Касание левой половины экрана — руль влево, правой — вправо.
+# Касания в верхней полосе экрана игнорируются, чтобы нажатие на кнопку паузы не поворачивало машину.
+@export var touch_ignore_top: float = 90.0
+var _touches: Dictionary = {}  # индекс пальца -> позиция X на экране
 
 # --- Внутренние переменные ---
 var current_speed: float = 400.0
 var steer_direction: float = 0.0
-var current_health: float = 100.0         # Текущее здоровье машины (Новое)
+var current_health: float = 100.0         # Текущая прочность машины
 
 func _ready() -> void:
 	add_to_group("player")
@@ -108,7 +113,7 @@ func _physics_process(delta: float) -> void:
 		current_speed = move_toward(current_speed, effective_max_speed, 800.0 * delta)
 
 
-		# 3. Расчет поворота колес (Доработано)
+	# 3. Расчет поворота
 	# Машина может поворачивать только если она реально движется вперед (скорость больше 50)
 	if current_speed > 50.0:
 		var turn = steer_direction * deg_to_rad(steering_angle) * (current_speed / max_speed)
@@ -119,16 +124,16 @@ func _physics_process(delta: float) -> void:
 		pass
 
 
-		# 4. Физика движения и дрифта (Доработано: мягкая потеря скорости в повороте)
+	# 4. Физика движения и дрифта (мягкая потеря скорости в повороте)
 	var forward_velocity = -transform.y * current_speed
 	velocity = velocity.lerp(forward_velocity, clamp(grip * delta * 10, 0.0, 1.0))
 	
 	# Вычисляем физическую скорость с учетом угла заноса
 	var drift_speed = velocity.dot(-transform.y)
 	
-	# --- НАСТРОЙКА ПЛАВНОСТИ (Новое) ---
-	# Коэффициент удержания скорости: 0.0 — скорость вообще не падает, 1.0 — падает как раньше.
-	# Значение 0.3 означает, что машина потеряет лишь 30% от стандартного падения скорости.
+	# --- НАСТРОЙКА ПЛАВНОСТИ ---
+	# Коэффициент потери скорости в заносе: 0.0 — скорость вообще не падает, 1.0 — падает полностью.
+	# Значение 0.5 означает, что машина теряет половину от «физической» потери скорости.
 	var turn_resistance: float = 0.5
 	
 	# Плавно смешиваем полную текущую скорость и скорость с учетом заноса
@@ -141,7 +146,7 @@ func _physics_process(delta: float) -> void:
 	# 5. Встроенный метод Godot для перемещения с учетом коллизий
 	move_and_slide()
 
-	# 6. Проверка столкновений со встречными машинами (Новое)
+	# 6. Проверка столкновений со встречными машинами и ограждениями
 	check_collisions()
 
 	# 7. Ограничение движения границами камеры
@@ -181,7 +186,35 @@ func get_input() -> void:
 	if Input.is_action_pressed("ui_right") or Input.is_physical_key_pressed(KEY_D):
 		steer_direction += 1.0
 
-# Функция проверки столкновений (Новое)
+	# Сенсорный экран: учитываем все пальцы (если зажаты обе половины — руль по центру)
+	if not _touches.is_empty():
+		var half_width := get_viewport_rect().size.x / 2.0
+		var touch_steer := 0.0
+		for x in _touches.values():
+			touch_steer += -1.0 if x < half_width else 1.0
+		steer_direction = clamp(steer_direction + touch_steer, -1.0, 1.0)
+
+
+# Касания приходят сюда только если их не забрал интерфейс (кнопки паузы, меню и т.д.)
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed and event.position.y > touch_ignore_top:
+			_touches[event.index] = event.position.x
+		else:
+			_touches.erase(event.index)
+	elif event is InputEventScreenDrag and _touches.has(event.index):
+		# Палец можно перетащить на другую половину экрана
+		_touches[event.index] = event.position.x
+
+
+func _notification(what: int) -> void:
+	# Пока игра на паузе, отпускание пальца сюда не доходит — сбрасываем касания,
+	# иначе после паузы руль может «залипнуть»
+	if what == NOTIFICATION_PAUSED or what == NOTIFICATION_UNPAUSED:
+		_touches.clear()
+
+
+# Функция проверки столкновений
 func check_collisions() -> void:
 	if is_invulnerable:
 		return
@@ -238,12 +271,12 @@ func start_fast_acceleration() -> void:
 		return
 		
 	is_fast_accelerating = true
-	active_acceleration = fast_acceleration # Включаем бешеное ускорение (600.0)
+	active_acceleration = fast_acceleration # Включаем быстрый разгон
 	
-	# Ждем пару секунд
+	# Ждем fast_accel_duration секунд
 	await get_tree().create_timer(fast_accel_duration).timeout
 	
-	# Возвращаем обычное стандартное ускорение (100.0)
+	# Возвращаем обычное ускорение
 	active_acceleration = acceleration
 	is_fast_accelerating = false
 
@@ -294,28 +327,7 @@ func start_invulnerability() -> void:
 	modulate.a = 1.0
 
 
-# Функция расчета физического урона (Новое)
-func calculate_collision_damage(enemy: CharacterBody2D, collision: KinematicCollision2D) -> void:
-	# Получаем векторы скоростей обоих автомобилей в момент удара
-	var player_velocity = velocity
-	var enemy_velocity = enemy.velocity if "velocity" in enemy else Vector2.ZERO
-	
-	# Направление вектора удара (нормаль коллизии)
-	var collision_normal = collision.get_normal()
-	
-	# Разница скоростей машин
-	var relative_velocity = player_velocity - enemy_velocity
-	
-	# Скалярное произведение определяет скорость сближения именно «лоб в лоб» [1]
-	var approach_speed = relative_velocity.dot(collision_normal)
-	
-	# Если машины сближаются (approach_speed отрицательный), наносим урон [1]
-	if approach_speed < 0:
-		# Высчитываем чистый урон на основе скорости сближения и нашего делителя баланса
-		var damage = abs(approach_speed) / damage_divider
-		take_damage(damage)
-
-# Функция применения урона и обновления UI (Новое)
+# Применение урона и обновление UI
 func take_damage(amount: float) -> void:
 	current_health -= amount
 	current_health = clamp(current_health, 0.0, max_health)
@@ -326,12 +338,10 @@ func take_damage(amount: float) -> void:
 	if current_health <= 0:
 		die()
 
-# Функция смерти игрока (Новое)
+# Смерть игрока
 func die() -> void:
 	print("Машина игрока полностью уничтожена!")
 	trigger_game_over("Ваш автомобиль полностью уничтожен!")
-	# Сюда можно вставить вызов экрана Game Over или перезапуск сцены:
-	# get_tree().reload_current_scene()
 
 # Функция удержания машины в экране
 func keep_inside_camera() -> void:
@@ -361,13 +371,17 @@ func keep_inside_camera() -> void:
 		# Ограничиваем позицию машины встроенной функцией clamp
 		global_position.x = clamp(global_position.x, min_x, max_x)
 		global_position.y = clamp(global_position.y, min_y, max_y)
-# Добавить в Player.gd
+
+
+## Гаечный ключ: полный ремонт
 func heal_full() -> void:
 	current_health = max_health
 	if health_bar:
 		health_bar.value = current_health
 	print("Машина полностью отремонтирована гаечным ключом!")
-# --- НОВАЯ ЛОГИКА ЕДИНАЯ ДЛЯ ПРОИГРЫША ---
+
+
+# --- Единая логика проигрыша ---
 func trigger_game_over(reason_text: String) -> void:
 	# Защита от двойного вызова (например, кончилось топливо и машина разбилась в одном кадре)
 	if is_dead:
