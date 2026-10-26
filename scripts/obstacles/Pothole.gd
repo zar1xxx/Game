@@ -24,10 +24,14 @@ func _ready() -> void:
 func _draw() -> void:
 	var outer := PackedVector2Array()
 	for p in _points:
-		outer.append(p * 1.15)
-	draw_colored_polygon(outer, Color(0.35, 0.33, 0.3))   # раскрошенный асфальт по краю
-	draw_colored_polygon(_points, Color(0.06, 0.05, 0.05)) # сама яма
-	draw_circle(Vector2(-radius.x * 0.3, -radius.y * 0.25), radius.y * 0.25, Color(0.12, 0.1, 0.1))
+		outer.append(p * 1.18)
+	draw_colored_polygon(outer, Art.ASPHALT_PATCH.lightened(0.08))  # раскрошенный край
+	draw_colored_polygon(_points, Art.INK)                          # сама яма
+	var inner := PackedVector2Array()
+	for p in _points:
+		inner.append(p * 0.6 + Vector2(radius.x * 0.12, radius.y * 0.15))
+	draw_colored_polygon(inner, Color("0f1118"))
+	draw_polyline(outer + PackedVector2Array([outer[0]]), Art.ASPHALT_CRACK, 2.0)
 
 
 func _on_body_entered(body: Node2D) -> void:

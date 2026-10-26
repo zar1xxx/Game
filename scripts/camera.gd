@@ -5,7 +5,7 @@ extends Camera2D
 
 # --- НАСТРОЙКА СМЕЩЕНИЯ ИГРОКА ---
 # Чем больше это число, тем ниже будет находиться машина игрока на экране.
-@export var camera_offset_y: float = 220.0
+@export var camera_offset_y: float = 230.0
 
 # --- Тряска камеры при ударах ---
 @export var shake_decay: float = 40.0   # Как быстро затухает тряска

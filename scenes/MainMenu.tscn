@@ -1,45 +1,52 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/MainMenu.gd" id="1_menu"]
-[ext_resource type="Script" path="res://scripts/MenuBackground.gd" id="2_bg"]
+[ext_resource type="Script" path="res://scripts/visual/Road.gd" id="2_road"]
+[ext_resource type="Script" path="res://scripts/visual/City.gd" id="3_city"]
+[ext_resource type="Script" path="res://scripts/visual/MenuTraffic.gd" id="4_traffic"]
+[ext_resource type="FontFile" path="res://fonts/InterDisplay-Black.otf" id="5_title"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.06, 0.07, 0.1, 0.85)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.98, 0.82, 0.2, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-content_margin_left = 40.0
-content_margin_top = 24.0
-content_margin_right = 40.0
-content_margin_bottom = 24.0
+[sub_resource type="LabelSettings" id="LabelSettings_small"]
+font_size = 15
+font_color = Color(0.603922, 0.627451, 0.705882, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_record"]
-bg_color = Color(0.98, 0.82, 0.2, 0.12)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-content_margin_left = 20.0
-content_margin_top = 8.0
-content_margin_right = 20.0
-content_margin_bottom = 8.0
+content_margin_left = 22.0
+content_margin_top = 6.0
+content_margin_right = 22.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 0.541176, 0.239216, 0.14)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
 
-[node name="MainMenu" type="Control"]
-layout_mode = 3
+[node name="MainMenu" type="Node2D"]
+script = ExtResource("1_menu")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(576, 324)
+
+[node name="Road" type="Node2D" parent="."]
+script = ExtResource("2_road")
+
+[node name="City" type="Node2D" parent="."]
+script = ExtResource("3_city")
+
+[node name="Traffic" type="Node2D" parent="."]
+script = ExtResource("4_traffic")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="UIRoot" type="Control" parent="UI"]
+unique_name_in_owner = true
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_menu")
 
-[node name="Background" type="Control" parent="."]
+[node name="Dim" type="ColorRect" parent="UI/UIRoot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -47,9 +54,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-script = ExtResource("2_bg")
+color = Color(0.0901961, 0.101961, 0.141176, 0.35)
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="Center" type="CenterContainer" parent="UI/UIRoot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -57,93 +64,210 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Panel" type="PanelContainer" parent="Center"]
+[node name="Panel" type="PanelContainer" parent="UI/UIRoot/Center"]
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="VBox" type="VBoxContainer" parent="Center/Panel"]
+[node name="VBox" type="VBoxContainer" parent="UI/UIRoot/Center/Panel"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 10
 alignment = 1
 
-[node name="TitleLabel" type="Label" parent="Center/Panel/VBox"]
+[node name="TitleSmall" type="Label" parent="UI/UIRoot/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.933333, 0.941176, 0.964706, 1)
+theme_override_fonts/font = ExtResource("5_title")
+theme_override_font_sizes/font_size = 28
+text = "В ПОГОНЕ"
+horizontal_alignment = 1
+
+[node name="TitleLabel" type="Label" parent="UI/UIRoot/Center/Panel/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.98, 0.82, 0.2, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_colors/font_color = Color(1, 0.541176, 0.239216, 1)
+theme_override_colors/font_outline_color = Color(0.0901961, 0.101961, 0.141176, 1)
 theme_override_constants/outline_size = 10
-theme_override_font_sizes/font_size = 58
-text = "БЕСКОНЕЧНОЕ ШОССЕ"
+theme_override_fonts/font = ExtResource("5_title")
+theme_override_font_sizes/font_size = 60
+text = "ЗА БЕНЗИНОМ"
 horizontal_alignment = 1
 
-[node name="Subtitle" type="Label" parent="Center/Panel/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
-theme_override_font_sizes/font_size = 18
-text = "Уклоняйтесь от машин и препятствий, собирайте топливо"
-horizontal_alignment = 1
-
-[node name="RecordPanel" type="PanelContainer" parent="Center/Panel/VBox"]
+[node name="RecordPanel" type="PanelContainer" parent="UI/UIRoot/Center/Panel/VBox"]
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_styles/panel = SubResource("StyleBoxFlat_record")
 
-[node name="RecordBox" type="HBoxContainer" parent="Center/Panel/VBox/RecordPanel"]
+[node name="RecordBox" type="HBoxContainer" parent="UI/UIRoot/Center/Panel/VBox/RecordPanel"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 14
 alignment = 1
 
-[node name="BestCaption" type="Label" parent="Center/Panel/VBox/RecordPanel/RecordBox"]
+[node name="BestCaption" type="Label" parent="UI/UIRoot/Center/Panel/VBox/RecordPanel/RecordBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 30
-text = "РЕКОРД:"
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 22
+text = "РЕКОРД"
 
-[node name="BestValue" type="Label" parent="Center/Panel/VBox/RecordPanel/RecordBox"]
+[node name="BestValue" type="Label" parent="UI/UIRoot/Center/Panel/VBox/RecordPanel/RecordBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.98, 0.82, 0.2, 1)
+theme_override_colors/font_color = Color(1, 0.784314, 0.341176, 1)
+theme_override_fonts/font = ExtResource("5_title")
 theme_override_font_sizes/font_size = 40
 text = "0"
 
-[node name="StatsLabel" type="Label" parent="Center/Panel/VBox"]
+[node name="StatsLabel" type="Label" parent="UI/UIRoot/Center/Panel/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.75, 0.75, 0.8, 1)
-theme_override_font_sizes/font_size = 16
 text = "Последний заезд: 0"
+label_settings = SubResource("LabelSettings_small")
 horizontal_alignment = 1
 
-[node name="Spacer" type="Control" parent="Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 6)
+[node name="Spacer" type="Control" parent="UI/UIRoot/Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 4)
 layout_mode = 2
 
-[node name="StartButton" type="Button" parent="Center/Panel/VBox"]
+[node name="StartButton" type="Button" parent="UI/UIRoot/Center/Panel/VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(380, 64)
+custom_minimum_size = Vector2(360, 62)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 28
 text = "Начать гонку"
 
-[node name="ResetButton" type="Button" parent="Center/Panel/VBox"]
+[node name="SettingsButton" type="Button" parent="UI/UIRoot/Center/Panel/VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(380, 44)
+custom_minimum_size = Vector2(360, 48)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 20
+text = "Настройки"
+
+[node name="ResetButton" type="Button" parent="UI/UIRoot/Center/Panel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 44)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 18
 text = "Сбросить рекорд"
 
-[node name="QuitButton" type="Button" parent="Center/Panel/VBox"]
+[node name="QuitButton" type="Button" parent="UI/UIRoot/Center/Panel/VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(380, 44)
+custom_minimum_size = Vector2(360, 44)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 text = "Выход"
 
-[node name="Controls" type="Label" parent="Center/Panel/VBox"]
+[node name="Controls" type="Label" parent="UI/UIRoot/Center/Panel/VBox"]
+unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.65, 0.65, 0.7, 1)
-theme_override_font_sizes/font_size = 15
-text = "Управление: стрелки влево/вправо или A / D  •  Esc — пауза"
+text = "← → / A D — руль   •   ↓ / S — тормоз   •   Esc — пауза"
+label_settings = SubResource("LabelSettings_small")
 horizontal_alignment = 1
+
+[node name="SettingsOverlay" type="Control" parent="UI/UIRoot"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="UI/UIRoot/SettingsOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0901961, 0.101961, 0.141176, 0.75)
+
+[node name="Center" type="CenterContainer" parent="UI/UIRoot/SettingsOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="UI/UIRoot/SettingsOverlay/Center"]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="UI/UIRoot/SettingsOverlay/Center/Panel"]
+custom_minimum_size = Vector2(440, 0)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="UI/UIRoot/SettingsOverlay/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.541176, 0.239216, 1)
+theme_override_fonts/font = ExtResource("5_title")
+theme_override_font_sizes/font_size = 38
+text = "НАСТРОЙКИ"
+horizontal_alignment = 1
+
+[node name="ControlCaption" type="Label" parent="UI/UIRoot/SettingsOverlay/Center/Panel/VBox"]
+layout_mode = 2
+text = "Управление на телефоне"
+label_settings = SubResource("LabelSettings_small")
+
+[node name="ModeBox" type="HBoxContainer" parent="UI/UIRoot/SettingsOverlay/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ModeButtons" type="Button" parent="UI/UIRoot/SettingsOverlay/Center/Panel/VBox/ModeBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "Кнопки"
+
+[node name="ModeTilt" type="Button" parent="UI/UIRoot/SettingsOverlay/Center/Panel/VBox/ModeBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "Наклон"
+
+[node name="TiltBox" type="VBoxContainer" parent="UI/UIRoot/SettingsOverlay/Center/Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="SensCaption" type="Label" parent="UI/UIRoot/SettingsOverlay/Center/Panel/VBox/TiltBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Чувствительность наклона: 1.0"
+label_settings = SubResource("LabelSettings_small")
+
+[node name="SensSlider" type="HSlider" parent="UI/UIRoot/SettingsOverlay/Center/Panel/VBox/TiltBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+min_value = 0.5
+max_value = 2.0
+step = 0.1
+value = 1.0
+
+[node name="InvertCheck" type="CheckButton" parent="UI/UIRoot/SettingsOverlay/Center/Panel/VBox/TiltBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "Инвертировать наклон"
+
+[node name="VibrationCheck" type="CheckButton" parent="UI/UIRoot/SettingsOverlay/Center/Panel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "Вибрация"
+
+[node name="DoneButton" type="Button" parent="UI/UIRoot/SettingsOverlay/Center/Panel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Готово"

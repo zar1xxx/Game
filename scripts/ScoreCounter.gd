@@ -5,7 +5,7 @@ signal score_changed(new_score: int)
 signal new_record_reached(score: int)   # Счёт впервые превысил сохранённый рекорд
 
 @onready var player: CharacterBody2D = get_parent()
-@onready var score_label: Label = get_node("/root/World/CanvasLayer/ScoreLabel")
+@onready var score_label: Label = %ScoreLabel
 
 var start_y: float = 0.0
 var max_score: int = 0
@@ -16,7 +16,7 @@ var _record_announced: bool = false
 func _ready() -> void:
 	add_to_group("score_counter")
 	start_y = player.global_position.y
-	score_label.text = "Счет: 0"
+	score_label.text = "0"
 	_record_to_beat = SaveManager.best_score
 	SaveManager.start_run()
 
@@ -27,7 +27,7 @@ func _process(_delta: float) -> void:
 
 	if current_score > max_score:
 		max_score = current_score
-		score_label.text = "Счет: " + str(max_score)
+		score_label.text = str(max_score)
 		SaveManager.update_run_score(max_score)
 		score_changed.emit(max_score)
 

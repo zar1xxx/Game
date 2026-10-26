@@ -15,11 +15,11 @@ func _ready() -> void:
 
 
 func _draw() -> void:
-	draw_circle(Vector2(3, 4), 17.0, Color(0, 0, 0, 0.3))                   # тень
-	draw_rect(Rect2(-16, -16, 32, 32), Color(0.12, 0.12, 0.12))              # основание
-	draw_circle(Vector2.ZERO, 13.0, Color(1.0, 0.45, 0.05))                   # конус
-	draw_arc(Vector2.ZERO, 8.0, 0.0, TAU, 24, Color(0.95, 0.95, 0.95), 4.0)   # светоотражающая полоса
-	draw_circle(Vector2.ZERO, 3.5, Color(1.0, 0.65, 0.3))                     # верхушка
+	Art.rrect(self, Rect2(Vector2(-16, -16) + Art.SHADOW_OFFSET * 0.6, Vector2(32, 32)), Art.SHADOW, 6)
+	Art.rrect(self, Rect2(-16, -16, 32, 32), Art.INK, 6)                    # основание
+	draw_circle(Vector2.ZERO, 13.0, Art.ORANGE)                               # конус
+	draw_arc(Vector2.ZERO, 8.0, 0.0, TAU, 24, Art.LINE_WHITE, 4.0)            # светоотражающая полоса
+	draw_circle(Vector2.ZERO, 3.5, Art.ORANGE.lightened(0.3))                 # верхушка
 
 
 func _on_body_entered(body: Node2D) -> void:

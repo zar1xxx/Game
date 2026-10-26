@@ -25,24 +25,27 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var half := Vector2(width, height) / 2.0
-	draw_rect(Rect2(-half + Vector2(4, 6), Vector2(width, height)), Color(0, 0, 0, 0.35))  # тень
-	draw_rect(Rect2(-half, Vector2(width, height)), Color(0.95, 0.95, 0.95))
-	# Красные диагональные полосы
+	var rect := Rect2(-half, Vector2(width, height))
+	Art.rrect(self, Rect2(rect.position + Art.SHADOW_OFFSET, rect.size), Art.SHADOW, 6)
+	Art.rrect(self, rect, Art.LINE_WHITE, 6)
+	# Красные полосы
 	var stripe := 28.0
-	var x := -half.x
+	var x := -half.x + 6
 	var i := 0
-	while x < half.x:
+	while x < half.x - 6:
 		if i % 2 == 0:
-			var x2 := minf(x + stripe, half.x)
-			draw_rect(Rect2(x, -half.y, x2 - x, height), Color(0.85, 0.1, 0.1))
+			var x2 := minf(x + stripe, half.x - 6)
+			draw_rect(Rect2(x, -half.y + 4, x2 - x, height - 8), Art.RED)
 		x += stripe
 		i += 1
-	draw_rect(Rect2(-half, Vector2(width, height)), Color(0.2, 0.2, 0.2), false, 3.0)
+	Art.rrect(self, rect, Color(0, 0, 0, 0), 6, 3, Art.INK)
 	# Мигающие фонари по краям
 	var on := int(_blink * 3.0) % 2 == 0
-	var lamp := Color(1.0, 0.75, 0.1) if on else Color(0.4, 0.3, 0.1)
-	draw_circle(Vector2(-half.x + 10, -half.y - 6), 7.0, lamp)
-	draw_circle(Vector2(half.x - 10, -half.y - 6), 7.0, lamp)
+	for px in [-half.x + 12, half.x - 12]:
+		var p := Vector2(px, -half.y - 6)
+		draw_circle(p, 6.0, Art.YELLOW if on else Color("5a5030"))
+		if on:
+			Art.glow(self, p, 26, Color(1, 0.75, 0.2, 0.45), 4)
 
 
 func _physics_process(_delta: float) -> void:

@@ -3,12 +3,12 @@ extends Control
 
 const MENU_SCENE := "res://scenes/MainMenu.tscn"
 
-@onready var reason_label: Label = $Center/VBox/ReasonLabel
-@onready var score_label: Label = $Center/VBox/ScoreResult
-@onready var best_label: Label = $Center/VBox/BestResult
-@onready var new_record_label: Label = $Center/VBox/NewRecordLabel
-@onready var restart_button: Button = $Center/VBox/Buttons/RestartButton
-@onready var menu_button: Button = $Center/VBox/Buttons/MenuButton
+@onready var reason_label: Label = $Center/Panel/VBox/ReasonLabel
+@onready var score_label: Label = $Center/Panel/VBox/ScoreResult
+@onready var best_label: Label = $Center/Panel/VBox/BestResult
+@onready var new_record_label: Label = $Center/Panel/VBox/NewRecordLabel
+@onready var restart_button: Button = $Center/Panel/VBox/Buttons/RestartButton
+@onready var menu_button: Button = $Center/Panel/VBox/Buttons/MenuButton
 
 var _time: float = 0.0
 

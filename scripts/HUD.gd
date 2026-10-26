@@ -1,9 +1,9 @@
 extends CanvasLayer
 ## Интерфейс во время гонки: рекорд, скорость, полоски прочности и топлива,
 ## отсчёт перед стартом, пауза и всплывающие сообщения.
-## Пауза включается клавишей Esc, кнопкой «II» на экране или кнопкой «Назад» на Android.
 
 const MENU_SCENE := "res://scenes/MainMenu.tscn"
+const KMH := 0.16   # перевод игровой скорости в «км/ч» для спидометра
 
 @export var countdown_enabled: bool = true
 
@@ -12,6 +12,8 @@ const MENU_SCENE := "res://scenes/MainMenu.tscn"
 @onready var health_bar: ProgressBar = %HealthBar
 @onready var fuel_bar: ProgressBar = %FuelBar
 @onready var center_label: Label = %CenterLabel
+@onready var hint_label: Label = %HintLabel
+@onready var pause_button: Button = %PauseButton
 @onready var pause_menu: Control = %PauseMenu
 @onready var resume_button: Button = %ResumeButton
 @onready var pause_restart_button: Button = %PauseRestartButton
@@ -22,7 +24,6 @@ var _counting_down: bool = false
 var _blink_time: float = 0.0
 var _health_fill: StyleBoxFlat
 var _fuel_fill: StyleBoxFlat
-var _pause_button: Button
 
 
 func _ready() -> void:
@@ -34,11 +35,19 @@ func _ready() -> void:
 	center_label.hide()
 
 	resume_button.pressed.connect(_toggle_pause)
+	pause_button.pressed.connect(func():
+		if not _counting_down and not (player and player.is_dead):
+			_toggle_pause())
+	if MobileInput.is_touch_device():
+		if MobileInput.get_mode() == "tilt":
+			hint_label.text = "Наклоняйте телефон, чтобы рулить   •   Касание справа — тормоз"
+		else:
+			hint_label.text = "◀ ▶ — руль   •   ТОРМОЗ — справа"
+		hint_label.position.y -= 150.0   # над сенсорными кнопками
 	pause_restart_button.pressed.connect(_on_restart_pressed)
 	pause_menu_button.pressed.connect(_on_menu_pressed)
 
 	_style_bars()
-	_create_pause_button()
 
 	var counter = get_tree().get_first_node_in_group("score_counter")
 	if counter:
@@ -49,21 +58,15 @@ func _ready() -> void:
 
 
 func _style_bars() -> void:
+	# Цвета заливки берутся из общей палитры Art.gd
 	_health_fill = StyleBoxFlat.new()
-	_health_fill.bg_color = Color(0.3, 0.85, 0.35)
-	_health_fill.set_corner_radius_all(4)
+	_health_fill.bg_color = Art.GREEN
+	_health_fill.set_corner_radius_all(6)
 	health_bar.add_theme_stylebox_override("fill", _health_fill)
-
 	_fuel_fill = StyleBoxFlat.new()
-	_fuel_fill.bg_color = Color(1.0, 0.65, 0.15)
-	_fuel_fill.set_corner_radius_all(4)
+	_fuel_fill.bg_color = Art.ORANGE
+	_fuel_fill.set_corner_radius_all(6)
 	fuel_bar.add_theme_stylebox_override("fill", _fuel_fill)
-
-	var bg := StyleBoxFlat.new()
-	bg.bg_color = Color(0, 0, 0, 0.55)
-	bg.set_corner_radius_all(4)
-	health_bar.add_theme_stylebox_override("background", bg)
-	fuel_bar.add_theme_stylebox_override("background", bg)
 
 
 func _process(delta: float) -> void:
@@ -71,62 +74,50 @@ func _process(delta: float) -> void:
 		return
 
 	# Скорость в «км/ч» (1 км/ч = 10 единиц скорости движка)
-	speed_label.text = "%d км/ч" % int(player.current_speed / 10.0)
+	speed_label.text = str(int(player.current_speed * KMH))
 	if player.nitro_time_left > 0.0:
-		speed_label.modulate = Color(0.5, 0.85, 1.0)
+		speed_label.modulate = Art.TEAL
+	elif player.is_braking:
+		speed_label.modulate = Art.RED
 	else:
 		speed_label.modulate = Color.WHITE
 
 	# Цвет прочности: зелёный -> жёлтый -> красный
 	var hp_ratio: float = health_bar.value / max(health_bar.max_value, 1.0)
-	_health_fill.bg_color = Color(0.9, 0.2, 0.2).lerp(Color(0.3, 0.85, 0.35), hp_ratio)
+	_health_fill.bg_color = Art.RED.lerp(Art.GREEN, hp_ratio)
 
 	# Мигание полоски топлива, когда его меньше 25%
 	var fuel_ratio: float = fuel_bar.value / max(fuel_bar.max_value, 1.0)
 	if fuel_ratio < 0.25 and not player.is_dead:
 		_blink_time += delta
-		fuel_bar.modulate = Color(1, 0.3, 0.3) if int(_blink_time * 4.0) % 2 == 0 else Color.WHITE
+		fuel_bar.modulate = Color(1.6, 0.6, 0.6) if int(_blink_time * 4.0) % 2 == 0 else Color.WHITE
 	else:
 		fuel_bar.modulate = Color.WHITE
 
 
-## Кнопка паузы для сенсорных экранов (создаётся кодом, чтобы не трогать сцену уровня)
-func _create_pause_button() -> void:
-	_pause_button = Button.new()
-	_pause_button.name = "PauseButton"
-	_pause_button.text = "II"
-	_pause_button.focus_mode = Control.FOCUS_NONE  # чтобы пробел/Enter не нажимали её случайно
-	_pause_button.add_theme_font_size_override("font_size", 28)
-	_pause_button.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_pause_button.offset_left = -32.0
-	_pause_button.offset_right = 32.0
-	_pause_button.offset_top = 10.0
-	_pause_button.offset_bottom = 66.0
-	_pause_button.pressed.connect(_request_pause)
-	add_child(_pause_button)
-	# Кнопка должна быть под меню паузы, а не поверх него
-	move_child(_pause_button, pause_menu.get_index())
-
-
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
-		_request_pause()
+		if _counting_down or (player and player.is_dead):
+			return
+		_toggle_pause()
 		get_viewport().set_input_as_handled()
 
 
+## Кнопка «Назад» на Android и сворачивание приложения
 func _notification(what: int) -> void:
-	# Кнопка «Назад» на Android работает как Esc
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		_request_pause()
-
-
-func _request_pause() -> void:
-	if _counting_down or (player and player.is_dead):
-		return
-	_toggle_pause()
+		if player and player.is_dead:
+			_on_menu_pressed()
+		elif not _counting_down:
+			_toggle_pause()
+	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
+		# Свернули игру — ставим на паузу, чтобы не разбиться «вслепую»
+		if not _counting_down and player and not player.is_dead and not get_tree().paused:
+			_toggle_pause()
 
 
 func _toggle_pause() -> void:
+	MobileInput.release_all()
 	var paused := not get_tree().paused
 	get_tree().paused = paused
 	pause_menu.visible = paused
@@ -154,17 +145,21 @@ func _start_countdown() -> void:
 	_counting_down = true
 	get_tree().paused = true
 	for text in ["3", "2", "1", "ВПЕРЁД!"]:
-		_pop_center(text, Color(0.98, 0.82, 0.2) if text != "ВПЕРЁД!" else Color(0.4, 1.0, 0.4))
+		_pop_center(text, Art.YELLOW if text != "ВПЕРЁД!" else Art.GREEN)
 		if text == "ВПЕРЁД!":
 			get_tree().paused = false
 			_counting_down = false
+			MobileInput.calibrate_tilt()
+			var tw := create_tween()
+			tw.tween_interval(3.5)
+			tw.tween_property(hint_label, "modulate:a", 0.0, 1.0)
 		await get_tree().create_timer(0.7).timeout
 	center_label.hide()
 
 
 func _on_new_record(_score: int) -> void:
-	_pop_center("НОВЫЙ РЕКОРД!", Color(1.0, 0.85, 0.2))
-	best_label.modulate = Color(1.0, 0.85, 0.2)
+	_pop_center("НОВЫЙ РЕКОРД!", Art.ORANGE)
+	best_label.modulate = Art.YELLOW
 	await get_tree().create_timer(1.5).timeout
 	center_label.hide()
 

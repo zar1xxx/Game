@@ -16,12 +16,12 @@ func _ready() -> void:
 
 func _draw() -> void:
 	for b in _blobs:
-		draw_circle(b[0], b[1], Color(0.03, 0.03, 0.05, 0.92))
+		draw_circle(b[0], b[1], Color(0.04, 0.04, 0.07, 0.94))
 	# Радужные блики на масле
 	for i in range(0, _blobs.size(), 2):
 		var b = _blobs[i]
-		draw_arc(b[0], b[1] * 0.6, 0.3, 2.2, 12, Color(0.4, 0.3, 0.9, 0.55), 3.0)
-		draw_arc(b[0], b[1] * 0.45, 3.4, 5.0, 12, Color(0.2, 0.8, 0.7, 0.45), 2.0)
+		draw_arc(b[0], b[1] * 0.6, 0.3, 2.2, 12, Color(Art.PURPLE, 0.6), 3.0)
+		draw_arc(b[0], b[1] * 0.45, 3.4, 5.0, 12, Color(Art.TEAL, 0.5), 2.0)
 
 
 func _on_body_entered(body: Node2D) -> void:
