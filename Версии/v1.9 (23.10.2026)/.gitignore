@@ -1,0 +1,9 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# Собранные APK
+/build/
+
+# Копии версий игры (полные снимки проекта, в git не нужны)
+/Версии/

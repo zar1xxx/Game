@@ -1,0 +1,157 @@
+[gd_scene load_steps=8 format=3 uid="uid://b1w4vsa4s0i55"]
+
+[ext_resource type="Script" uid="uid://i00vp7b8upjg" path="res://scripts/MainMenu.gd" id="1_menu"]
+[ext_resource type="Script" uid="uid://bidx8t3fae4d" path="res://scripts/visual/Road.gd" id="2_road"]
+[ext_resource type="Script" uid="uid://136cn0p17ocp" path="res://scripts/visual/City.gd" id="3_city"]
+[ext_resource type="Script" uid="uid://dwvlm15hanmgs" path="res://scripts/visual/MenuTraffic.gd" id="4_traffic"]
+[ext_resource type="FontFile" uid="uid://blnd5hl87ssyu" path="res://fonts/InterDisplay-Black.otf" id="5_title"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_record"]
+content_margin_left = 22.0
+content_margin_top = 6.0
+content_margin_right = 22.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 0.541176, 0.239216, 0.14)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="LabelSettings" id="LabelSettings_small"]
+font_size = 15
+font_color = Color(0.603922, 0.627451, 0.705882, 1)
+
+[node name="MainMenu" type="Node2D"]
+script = ExtResource("1_menu")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(576, 324)
+
+[node name="Road" type="Node2D" parent="."]
+script = ExtResource("2_road")
+
+[node name="City" type="Node2D" parent="."]
+script = ExtResource("3_city")
+
+[node name="Traffic" type="Node2D" parent="."]
+script = ExtResource("4_traffic")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="UIRoot" type="Control" parent="UI"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="UI/UIRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0901961, 0.101961, 0.141176, 0.35)
+
+[node name="Center" type="CenterContainer" parent="UI/UIRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="UI/UIRoot/Center"]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="UI/UIRoot/Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="TitleSmall" type="Label" parent="UI/UIRoot/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.933333, 0.941176, 0.964706, 1)
+theme_override_fonts/font = ExtResource("5_title")
+theme_override_font_sizes/font_size = 28
+text = "В ПОГОНЕ"
+horizontal_alignment = 1
+
+[node name="TitleLabel" type="Label" parent="UI/UIRoot/Center/Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.541176, 0.239216, 1)
+theme_override_colors/font_outline_color = Color(0.0901961, 0.101961, 0.141176, 1)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("5_title")
+theme_override_font_sizes/font_size = 60
+text = "ЗА БЕНЗИНОМ"
+horizontal_alignment = 1
+
+[node name="RecordPanel" type="PanelContainer" parent="UI/UIRoot/Center/Panel/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_record")
+
+[node name="RecordBox" type="HBoxContainer" parent="UI/UIRoot/Center/Panel/VBox/RecordPanel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="BestCaption" type="Label" parent="UI/UIRoot/Center/Panel/VBox/RecordPanel/RecordBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "РЕКОРД"
+
+[node name="BestValue" type="Label" parent="UI/UIRoot/Center/Panel/VBox/RecordPanel/RecordBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.784314, 0.341176, 1)
+theme_override_fonts/font = ExtResource("5_title")
+theme_override_font_sizes/font_size = 40
+text = "0"
+
+[node name="StatsLabel" type="Label" parent="UI/UIRoot/Center/Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Последний заезд: 0"
+label_settings = SubResource("LabelSettings_small")
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="UI/UIRoot/Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+
+[node name="StartButton" type="Button" parent="UI/UIRoot/Center/Panel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 62)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 28
+text = "Начать гонку"
+
+[node name="ResetButton" type="Button" parent="UI/UIRoot/Center/Panel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 44)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 18
+text = "Сбросить рекорд"
+
+[node name="QuitButton" type="Button" parent="UI/UIRoot/Center/Panel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 44)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 18
+text = "Выход"
+
+[node name="Controls" type="Label" parent="UI/UIRoot/Center/Panel/VBox"]
+layout_mode = 2
+text = "← → / A D — руль   •   ↓ / S — тормоз   •   Esc — пауза"
+label_settings = SubResource("LabelSettings_small")
+horizontal_alignment = 1

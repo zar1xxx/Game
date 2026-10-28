@@ -1,0 +1,496 @@
+class_name GameData
+extends RefCounted
+## Каталог машин и трасс для магазина.
+## Хотите поменять баланс — меняйте цифры здесь, остальной код подхватит их сам.
+
+# ---------------------------------------------------------------------------
+# Машины
+# ---------------------------------------------------------------------------
+## kind — как рисуется (см. Art.draw_vehicle)
+## speed — крейсерская скорость в начале заезда, accel — разгон, turn — поворот (°/с)
+## health — прочность, fuel — расход бензина (1 = обычный), damage — получаемый урон (1 = обычный)
+## score / coins — множители очков и монет, regen — самопочинка (ед./с), nitro — длительность нитро
+const CARS := [
+	{
+		"id": "orange", "name": "Оранжевая молния", "price": 0, "kind": "car",
+		"color": Color("ff8a3d"), "length": 104.0, "width": 52.0,
+		"speed": 740.0, "accel": 110.0, "turn": 140.0, "health": 100.0,
+		"fuel": 1.0, "damage": 1.0, "score": 1.0, "coins": 1.0, "regen": 0.0, "nitro": 1.0,
+		"desc": "Ваша первая любовь. Пахнет бензином и мечтой. Спойлер прикручен для скорости, а заодно для красоты.",
+		"perk": "",
+	},
+	{
+		"id": "kopeyka", "name": "Копейка", "price": 150, "kind": "classic",
+		"color": Color("c9483e"), "length": 100.0, "width": 50.0,
+		"speed": 700.0, "accel": 95.0, "turn": 135.0, "health": 95.0,
+		"fuel": 1.1, "damage": 1.0, "score": 1.0, "coins": 1.0, "regen": 0.0, "nitro": 1.0, "fuel_bonus": 1.5,
+		"desc": "Дедушкина «копейка» из гаража. Заводится с третьего раза, зато чинится молотком и добрым словом. Бензин чувствует издалека.",
+		"perk": "Канистры дают на 50% больше бензина",
+	},
+	{
+		"id": "patriot", "name": "УАЗ «Патриот»", "price": 250, "kind": "suv",
+		"color": Color("6b7d4f"), "length": 108.0, "width": 58.0,
+		"speed": 680.0, "accel": 95.0, "turn": 120.0, "health": 150.0,
+		"fuel": 1.25, "damage": 0.85, "score": 1.0, "coins": 1.0, "regen": 0.0, "nitro": 1.0,
+		"desc": "Проедет там, где нет дороги. Там, где дорога есть, — тоже, но без энтузиазма. Печка греет даже в июле, выключить её нельзя.",
+		"perk": "Крепкий: урон −15%",
+	},
+	{
+		"id": "taxi", "name": "Такси «Шашечки»", "price": 400, "kind": "taxi",
+		"color": Color("ffc857"), "length": 104.0, "width": 52.0,
+		"speed": 760.0, "accel": 120.0, "turn": 150.0, "health": 100.0,
+		"fuel": 0.9, "damage": 1.0, "score": 1.0, "coins": 1.3, "regen": 0.0, "nitro": 1.0,
+		"desc": "Знает все короткие пути, но ездит по длинным — счётчик-то тикает. Шансон в комплекте.",
+		"perk": "+30% монет за заезд",
+	},
+	{
+		"id": "pizza", "name": "Мотороллер «Пицца-экспресс»", "price": 500, "kind": "scooter",
+		"color": Color("e8505b"), "length": 82.0, "width": 38.0,
+		"speed": 700.0, "accel": 160.0, "turn": 190.0, "health": 55.0,
+		"fuel": 0.5, "damage": 1.0, "score": 1.0, "coins": 1.0, "regen": 0.0, "nitro": 1.0,
+		"desc": "Пролезет в любую щель между машинами. Пицца доедет горячей. Курьер — как повезёт.",
+		"perk": "Маленький и вёрткий, почти не пьёт бензин",
+	},
+	{
+		"id": "tractor", "name": "Трактор «Пахарь»", "price": 600, "kind": "tractor",
+		"color": Color("d8462f"), "length": 112.0, "width": 66.0,
+		"speed": 580.0, "accel": 85.0, "turn": 125.0, "health": 190.0,
+		"fuel": 1.2, "damage": 0.75, "score": 1.15, "coins": 1.0, "regen": 0.0, "nitro": 1.0, "offroad": true,
+		"desc": "Пашет поле, возит сено и обгоняет всех на просёлке. Ямы для него — просто неровности рельефа.",
+		"perk": "Ямы, сугробы и лужи ему нипочём, очки +15%",
+	},
+	{
+		"id": "ural", "name": "Мотоцикл с коляской", "price": 700, "kind": "sidecar",
+		"color": Color("2f6b4f"), "length": 96.0, "width": 58.0,
+		"speed": 770.0, "accel": 150.0, "turn": 175.0, "health": 75.0,
+		"fuel": 0.7, "damage": 1.1, "score": 1.0, "coins": 1.0, "regen": 0.0, "nitro": 1.45,
+		"desc": "В коляске едет пёс в очках и следит за дорогой. Говорят, этот мотоцикл пережил три капремонта и одного хозяина.",
+		"perk": "Вёрткий, нитро на 45% дольше",
+	},
+	{
+		"id": "wb", "name": "Грузовик Wildberries", "price": 800, "kind": "truck",
+		"color": Color("8e2fbf"), "length": 180.0, "width": 64.0,
+		"speed": 640.0, "accel": 80.0, "turn": 100.0, "health": 240.0,
+		"fuel": 1.6, "damage": 0.6, "score": 1.0, "coins": 1.0, "regen": 0.0, "nitro": 1.0,
+		"desc": "Везёт ваш заказ уже третью неделю. Сломать его невозможно, объехать — тоже. Пункт выдачи там, где он остановится.",
+		"perk": "Бронированный: урон −40%",
+	},
+	{
+		"id": "marshrutka", "name": "Маршрутка «Омск — Омск»", "price": 950, "kind": "marshrutka",
+		"color": Color("f2c230"), "length": 140.0, "width": 58.0,
+		"speed": 700.0, "accel": 105.0, "turn": 125.0, "health": 150.0,
+		"fuel": 1.2, "damage": 0.85, "score": 1.0, "coins": 1.15, "regen": 0.0, "nitro": 1.0,
+		"home": "omsk", "home_score": 1.5,
+		"desc": "Маршрут «Омск — Омск». Водитель уже 20 лет пытается выехать из города, но табличка «Омск 0 км» всё никак не кончается. Остановка — «у столба», сдачу дают семечками.",
+		"perk": "+15% монет, а в Омске очки ×1,5",
+	},
+	{
+		"id": "police", "name": "Перехватчик ДПС", "price": 1000, "kind": "police",
+		"color": Color("eef0f6"), "length": 106.0, "width": 52.0,
+		"speed": 840.0, "accel": 140.0, "turn": 155.0, "health": 110.0,
+		"fuel": 1.1, "damage": 1.0, "score": 1.0, "coins": 1.0, "regen": 0.0, "nitro": 1.6,
+		"desc": "Догонит кого угодно, но штраф выпишет только себе — за превышение. Мигалка исключительно для настроения.",
+		"perk": "Нитро на 60% дольше, и полиция своих не ловит",
+	},
+	{
+		"id": "bus", "name": "Автобус №67", "price": 1100, "kind": "bus",
+		"color": Color("e8505b"), "length": 200.0, "width": 62.0,
+		"speed": 620.0, "accel": 70.0, "turn": 95.0, "health": 200.0,
+		"fuel": 1.4, "damage": 0.75, "score": 1.25, "coins": 1.0, "regen": 0.0, "nitro": 1.0,
+		"desc": "Маршрут №67 «Депо — куда-нибудь». Остановки по требованию, но никто не требует. Пассажиры платят за проезд — отсюда и бонус.",
+		"perk": "+25% очков",
+	},
+	{
+		"id": "ambulance", "name": "Скорая помощь", "price": 1300, "kind": "ambulance",
+		"color": Color("f2f3f7"), "length": 118.0, "width": 56.0,
+		"speed": 760.0, "accel": 115.0, "turn": 135.0, "health": 120.0,
+		"fuel": 1.1, "damage": 1.0, "score": 1.0, "coins": 1.0, "regen": 1.5, "nitro": 1.0,
+		"desc": "Лечит себя прямо на ходу: в аптечке есть изолента и подорожник. Сирена включается сама, когда страшно.",
+		"perk": "Сама восстанавливает прочность",
+	},
+	{
+		"id": "fire", "name": "Пожарная машина", "price": 1400, "kind": "fire",
+		"color": Color("d8312f"), "length": 160.0, "width": 62.0,
+		"speed": 690.0, "accel": 95.0, "turn": 115.0, "health": 190.0,
+		"fuel": 1.3, "damage": 0.85, "score": 1.1, "coins": 1.0, "regen": 0.0, "nitro": 1.0, "obstacle_damage": 0.4,
+		"desc": "Едет на вызов: снять кота с дерева. Лестница на крыше, брандспойт наготове, ограждения разлетаются как спички.",
+		"perk": "Ограждения и конусы почти не наносят урона, очки +10%",
+	},
+	{
+		"id": "limo", "name": "Лимузин «Свадебный»", "price": 1600, "kind": "limo",
+		"color": Color("f4f1ea"), "length": 186.0, "width": 54.0,
+		"speed": 760.0, "accel": 100.0, "turn": 110.0, "health": 120.0,
+		"fuel": 1.3, "damage": 1.0, "score": 1.0, "coins": 1.5, "regen": 0.0, "nitro": 1.0,
+		"desc": "Кольца на крыше, ленточки на капоте, внутри — свидетель с баяном. Гости щедро платят за каждый километр.",
+		"perk": "+50% монет за заезд",
+	},
+	{
+		"id": "tesla", "name": "Tesla Model Z", "price": 1800, "kind": "ev",
+		"color": Color("e4e8ef"), "length": 106.0, "width": 52.0,
+		"speed": 880.0, "accel": 230.0, "turn": 150.0, "health": 75.0,
+		"fuel": 0.35, "damage": 1.2, "score": 1.0, "coins": 1.0, "regen": 0.0, "nitro": 1.0,
+		"desc": "Модели X и Y уже были, а на Z алфавит закончился. Бензин не пьёт, но канистры собирает — «для подзарядки», не спрашивайте как. Автопилот отключили после случая с ёлкой.",
+		"perk": "Бешеный разгон, расход −65%, но хрупкая",
+	},
+	{
+		"id": "monster", "name": "Монстр-трак «Бульдозер»", "price": 2500, "kind": "monster",
+		"color": Color("7a3fd1"), "length": 122.0, "width": 74.0,
+		"speed": 790.0, "accel": 120.0, "turn": 125.0, "health": 170.0,
+		"fuel": 1.35, "damage": 0.9, "score": 1.0, "coins": 1.1, "regen": 0.0, "nitro": 1.0, "crush": true,
+		"desc": "Колёса выше, чем ваш гараж. Конусы и ямы он не объезжает, а давит — и получает за это очки.",
+		"perk": "Давит конусы и ямы с бонусом очков, +10% монет",
+	},
+	{
+		"id": "bolid", "name": "Болид «Сверхзвук»", "price": 3000, "kind": "racecar",
+		"color": Color("4d7cfe"), "length": 112.0, "width": 50.0,
+		"speed": 1000.0, "accel": 210.0, "turn": 175.0, "health": 60.0,
+		"fuel": 1.4, "damage": 1.3, "score": 1.0, "coins": 1.0, "regen": 0.0, "nitro": 1.0,
+		"desc": "Создан побеждать. На заправке его не замечают — слишком быстро проезжает. Подвеска как у табуретки, но какой табуретки!",
+		"perk": "Самый быстрый. Самый хрупкий",
+	},
+]
+
+# ---------------------------------------------------------------------------
+# Трассы (локации)
+# ---------------------------------------------------------------------------
+## score — множитель очков, coins — множитель монет
+## grip — сцепление с дорогой, fuel — расход бензина, traffic — плотность трафика,
+## enemy_speed — скорость встречных, time — время суток: "cycle" (день → закат → ночь)
+## или "night" (всегда ночь), start — с какой фазы начинать
+const LOCATIONS := [
+	{
+		"id": "city", "name": "Вечерний город", "price": 0, "theme": "city",
+		"score": 1.0, "coins": 1.0, "grip": 1.0, "fuel": 1.0, "traffic": 1.0, "enemy_speed": 1.0,
+		"time": "cycle", "start": 0.35,
+		"desc": "Родные улицы: светофоры, стройки, АЗС на каждом углу. Время суток меняется прямо во время гонки.",
+		"mods": ["Без сюрпризов — идеально для разминки"],
+	},
+	{
+		"id": "winter", "name": "Зимняя трасса", "price": 300, "theme": "winter",
+		"score": 1.4, "coins": 1.4, "grip": 0.45, "fuel": 1.0, "traffic": 1.0, "enemy_speed": 0.9,
+		"time": "cycle", "start": 0.0,
+		"desc": "Дворники не справляются, коммунальщики в отпуске. Город засыпало, дорогу — тоже.",
+		"mods": ["Скользкая дорога: машину заносит", "Гололёд вместо масла", "Сугробы вместо ям", "Снегопад"],
+	},
+	{
+		"id": "village", "name": "Село Кукуево", "price": 500, "theme": "village", "music": "village",
+		"score": 1.5, "coins": 1.5, "grip": 0.85, "fuel": 1.0, "traffic": 0.85, "enemy_speed": 0.9,
+		"time": "cycle", "start": 0.05, "potholes": 1.8,
+		"desc": "Асфальт здесь положили в 1987 году и с тех пор берегут. Вдоль дороги — избы, огороды и стога, а коровы переходят дорогу, когда захотят.",
+		"mods": ["Коровы переходят дорогу", "Ям почти вдвое больше", "Дорога в пыли: сцепление чуть хуже", "Машин меньше"],
+	},
+	{
+		"id": "desert", "name": "Пустынное шоссе", "price": 700, "theme": "desert",
+		"score": 1.7, "coins": 1.7, "grip": 0.9, "fuel": 1.5, "traffic": 0.9, "enemy_speed": 1.1,
+		"time": "cycle", "start": 0.1,
+		"desc": "Кактусы, нефтяные вышки и ни одной заправки на сотни километров. Бензин здесь на вес золота.",
+		"mods": ["Жара: расход бензина ×1,5", "Песчаные бури закрывают обзор", "Перекати-поле на дороге"],
+	},
+	{
+		"id": "beach", "name": "Морское побережье", "price": 900, "theme": "beach", "music": "beach",
+		"score": 1.6, "coins": 1.6, "grip": 0.95, "fuel": 1.0, "traffic": 1.05, "enemy_speed": 1.0,
+		"time": "cycle", "start": 0.0,
+		"desc": "Слева отели и кафе, справа пляж и море. Отдыхающие гуляют прямо по дороге, а крабы переходят её боком.",
+		"mods": ["Крабы бегают поперёк дороги", "Песок на асфальте", "На тротуарах толпы отдыхающих"],
+	},
+	{
+		"id": "rain", "name": "Ливень", "price": 1200, "theme": "rain",
+		"score": 1.9, "coins": 1.9, "grip": 0.7, "fuel": 1.0, "traffic": 1.15, "enemy_speed": 1.0,
+		"time": "cycle", "start": 0.45,
+		"desc": "Небо прорвало. Мокрый асфальт, глубокие лужи и молнии, от которых на секунду становится светло как днём.",
+		"mods": ["Мокрая дорога: сцепление −30%", "Лужи: аквапланирование", "Ливень и молнии", "Трафик плотнее"],
+	},
+	{
+		"id": "omsk", "name": "Омск", "price": 1500, "theme": "omsk", "music": "omsk",
+		"score": 2.2, "coins": 2.1, "grip": 1.0, "fuel": 1.0, "traffic": 1.1, "enemy_speed": 1.05,
+		"time": "cycle", "start": 0.3, "potholes": 2.4, "loop": true,
+		"desc": "Город, из которого невозможно уехать. Ямы исторические, птица легендарная, а каждые несколько километров дорога снова приводит к табличке «ОМСК» — и с каждым кругом всё абсурднее.",
+		"mods": ["Омск не отпускает: каждый круг — бонус очков и больше абсурда", "Ямы на каждом шагу — их втрое больше",
+			"Омская птица, маршрутки, разводной мост и половодье", "Степаныч, Любочка и единственное метро"],
+	},
+	{
+		"id": "mountain", "name": "Горный серпантин", "price": 1700, "theme": "mountain", "music": "mountain",
+		"score": 2.2, "coins": 2.2, "grip": 0.9, "fuel": 1.1, "traffic": 1.0, "enemy_speed": 1.05,
+		"time": "cycle", "start": 0.15,
+		"desc": "Слева скалы, справа обрыв и облака под колёсами. Со склонов то и дело сыплются камни, а в низинах стоит густой туман.",
+		"mods": ["Камнепады перегораживают полосу", "Туман в низинах", "В горку бензин уходит быстрее"],
+	},
+	{
+		"id": "neon", "name": "Неоновый мегаполис", "price": 2000, "theme": "neon",
+		"score": 2.3, "coins": 2.3, "grip": 1.0, "fuel": 1.0, "traffic": 1.35, "enemy_speed": 1.2,
+		"time": "night", "start": 0.6,
+		"desc": "Город, который никогда не спит и никогда не тормозит. Неон на каждой крыше, а дорогу видно только в свете фар.",
+		"mods": ["Вечная ночь: видно только в свете фар", "Трафик плотнее на 35%", "Встречные быстрее на 20%"],
+	},
+]
+
+
+# ---------------------------------------------------------------------------
+# Достопримечательности Омска (для карты). pos — место на схеме (0..1), не в масштабе
+# ---------------------------------------------------------------------------
+const LANDMARK_REWARD := 25          # монет за каждую новую найденную точку
+const LANDMARKS_ALL_REWARD := 500    # за всю карту
+const LANDMARKS := [
+	{"id": "tara", "name": "Тарские ворота", "pos": Vector2(0.50, 0.36),
+		"desc": "Ворота старой Омской крепости XVIII века, по ним начиналась дорога на Тару. Сегодня — одна из визитных карточек города."},
+	{"id": "dostoevsky", "name": "Памятник Достоевскому", "pos": Vector2(0.62, 0.27),
+		"desc": "Фёдор Достоевский отбывал каторгу в Омском остроге и описал её в «Записках из Мёртвого дома»."},
+	{"id": "sobor", "name": "Успенский собор", "pos": Vector2(0.76, 0.37),
+		"desc": "Главный храм Омска. В 1930-х его взорвали, а в 2000-х отстроили заново на прежнем месте."},
+	{"id": "drama", "name": "Драмтеатр", "pos": Vector2(0.55, 0.63),
+		"desc": "Омский драматический театр — нарядное здание начала XX века, одно из самых красивых в Сибири."},
+	{"id": "lyubochka", "name": "Любочка", "pos": Vector2(0.74, 0.66),
+		"desc": "Бронзовая барышня на скамейке на улице Ленина. Говорят, если посидеть рядом — повезёт. Нам как раз пригодится."},
+	{"id": "stepanych", "name": "Сантехник Степаныч", "pos": Vector2(0.62, 0.79),
+		"desc": "Выглядывает из люка на улице Ленина. Чинит трубы, следит за ямами и знает про Омск всё."},
+	{"id": "metro", "name": "Метро «Библиотека им. Пушкина»", "pos": Vector2(0.86, 0.56),
+		"desc": "Единственная станция омского метро. Работает как подземный переход — зато какой!"},
+	{"id": "irtysh", "name": "Набережная Иртыша", "pos": Vector2(0.24, 0.58),
+		"desc": "Иртыш — главная река города. В центре в него впадает Омь, отсюда и название: Ом-ск."},
+	{"id": "bridge", "name": "Ленинградский мост", "pos": Vector2(0.40, 0.88),
+		"desc": "Один из главных мостов через Иртыш. Ехать по нему быстро нельзя — слишком красиво."},
+	{"id": "npz", "name": "Омский НПЗ", "pos": Vector2(0.45, 0.09),
+		"desc": "Один из крупнейших нефтеперерабатывающих заводов России. Его факелы видно издалека — бензин, за которым мы гонимся, отсюда."},
+]
+
+
+# ---------------------------------------------------------------------------
+# Гараж: тюнинг, покраска, наклейки, номер
+# ---------------------------------------------------------------------------
+const UPGRADE_MAX := 5
+const UPGRADE_PRICES := [100, 200, 350, 550, 800]
+const UPGRADES := [
+	{"id": "tank", "name": "Бак", "per": "+12% бензина в баке", "icon": "⛽"},
+	{"id": "brakes", "name": "Тормоза", "per": "+15% силы торможения", "icon": "◼"},
+	{"id": "magnet", "name": "Магнит", "per": "бонусы притягиваются издалека", "icon": "U"},
+	{"id": "armor", "name": "Кузов", "per": "+12% прочности", "icon": "▣"},
+]
+const PAINT_PRICE := 60
+## Позолота — шуточная покраска для обладателей «контракта»
+const GOLD_PAINT := "e8b923"
+const GOLD_PRICE := 900000
+const PAINTS := [
+	Color("ff8a3d"), Color("e8505b"), Color("ffc857"), Color("5bbf72"), Color("2ec4b6"), Color("4d7cfe"),
+	Color("8e6cef"), Color("ff6fb5"), Color("eef0f6"), Color("8a8f9c"), Color("2b2e38"), Color("6b7d4f"),
+	Color("b07b62"), Color("ffd23f"), Color("00b3ff"), Color("ff3b4a"),
+]
+const DECALS := [
+	{"id": "", "name": "Без наклейки", "price": 0},
+	{"id": "stripes", "name": "Гоночные полосы", "price": 120},
+	{"id": "flames", "name": "Языки пламени", "price": 200},
+	{"id": "number", "name": "Номер 55", "price": 150},
+	{"id": "checker", "name": "Шахматка", "price": 180},
+	{"id": "star", "name": "Звезда", "price": 150},
+	{"id": "lightning", "name": "Молния", "price": 220},
+	{"id": "omsk", "name": "Надпись «ОМСК»", "price": 250},
+	{"id": "duck", "name": "Уточка на крыше", "price": 300},
+	{"id": "cow", "name": "Пятна «Бурёнка»", "price": 220},
+	{"id": "wave", "name": "Морская волна", "price": 200},
+	{"id": "peaks", "name": "Горные вершины", "price": 240},
+	# Наклейки за уровень водителя — бесплатно, но открываются только с нужного уровня
+	{"id": "learner", "name": "Знак «У»", "price": 0, "level": 3},
+	{"id": "wings", "name": "Крылья", "price": 0, "level": 11},
+	{"id": "crown", "name": "Корона", "price": 0, "level": 20},
+	{"id": "legend", "name": "«Легенда дорог»", "price": 0, "level": 30},
+]
+const PLATE_PRICE := 50
+
+# ---------------------------------------------------------------------------
+# Уровень водителя: звания и косметика
+# ---------------------------------------------------------------------------
+const MAX_LEVEL := 30
+## Что появилось в последних версиях — в магазине отмечается «новинкой»
+const NEW_ITEMS := ["kopeyka", "tractor", "ural", "fire", "limo", "monster", "village", "beach", "mountain"]
+## [с какого уровня, звание]
+const LEVEL_TITLES := [
+	[1, "Новичок"], [3, "Ученик"], [5, "Любитель"], [7, "Водитель"], [9, "Уверенный водитель"],
+	[12, "Таксист"], [15, "Дальнобойщик"], [18, "Гонщик"], [21, "Ас"], [24, "Король трассы"],
+	[27, "Гроза ДПС"], [30, "Легенда дорог"],
+]
+## Гудки (звук audio/sfx/<sound>.ogg)
+const HORNS := [
+	{"id": "", "name": "Обычный", "sound": "horn", "level": 1},
+	{"id": "squeak", "name": "Писклявый", "sound": "horn_squeak", "level": 4},
+	{"id": "truck", "name": "Грузовой", "sound": "horn_truck", "level": 10},
+	{"id": "duck", "name": "Резиновая утка", "sound": "horn_duck", "level": 16},
+	{"id": "melody", "name": "Мелодия", "sound": "horn_melody", "level": 22},
+]
+## Дым из выхлопной трубы
+const SMOKES := [
+	{"id": "", "name": "Без дыма", "level": 1},
+	{"id": "grey", "name": "Сизый дымок", "level": 2},
+	{"id": "black", "name": "Дизельный", "level": 6},
+	{"id": "rainbow", "name": "Радуга", "level": 13},
+	{"id": "hearts", "name": "Сердечки", "level": 19},
+	{"id": "fire", "name": "Выхлоп с огнём", "level": 26},
+]
+
+
+## Опыт, нужный, чтобы перейти с уровня level на следующий
+static func xp_for_level(level: int) -> int:
+	return 100 + 60 * (level - 1)
+
+
+## Уровень по общему опыту
+static func level_from_xp(xp: int) -> int:
+	var lvl := 1
+	while lvl < MAX_LEVEL and xp >= xp_for_level(lvl):
+		xp -= xp_for_level(lvl)
+		lvl += 1
+	return lvl
+
+
+## [опыт внутри уровня, сколько нужно на уровень] — для полоски
+static func level_progress(xp: int) -> Vector2i:
+	var lvl := 1
+	while lvl < MAX_LEVEL and xp >= xp_for_level(lvl):
+		xp -= xp_for_level(lvl)
+		lvl += 1
+	if lvl >= MAX_LEVEL:
+		return Vector2i(1, 1)
+	return Vector2i(xp, xp_for_level(lvl))
+
+
+static func level_title(level: int) -> String:
+	var t: String = LEVEL_TITLES[0][1]
+	for e in LEVEL_TITLES:
+		if level >= e[0]:
+			t = e[1]
+	return t
+
+
+## Монеты за новый уровень
+static func level_reward(level: int) -> int:
+	return 50 + 10 * level
+
+
+## Что открывается на уровне: ["гудок «Писклявый»", "звание «Ученик»", …]
+static func level_unlocks(level: int) -> Array:
+	var out: Array = []
+	for e in LEVEL_TITLES:
+		if e[0] == level and level > 1:
+			out.append("звание «%s»" % e[1])
+	for h in HORNS:
+		if h.level == level and level > 1:
+			out.append("гудок «%s»" % h.name)
+	for sm in SMOKES:
+		if sm.level == level and level > 1:
+			out.append("дым «%s»" % sm.name)
+	for d in DECALS:
+		if d.get("level", 0) == level:
+			out.append("наклейка «%s»" % d.name.replace("«", "").replace("»", ""))
+	return out
+
+
+## Ближайший уровень, на котором что-то открывается (0 — всё открыто)
+static func next_unlock_level(level: int) -> int:
+	for l in range(level + 1, MAX_LEVEL + 1):
+		if not level_unlocks(l).is_empty():
+			return l
+	return 0
+
+
+static func get_horn(id: String) -> Dictionary:
+	for h in HORNS:
+		if h.id == id:
+			return h
+	return HORNS[0]
+
+
+static func get_smoke(id: String) -> Dictionary:
+	for sm in SMOKES:
+		if sm.id == id:
+			return sm
+	return SMOKES[0]
+
+
+# ---------------------------------------------------------------------------
+# Испытание недели
+# ---------------------------------------------------------------------------
+const WEEKLY_RULES := [
+	{"id": "no_brakes", "name": "Без тормозов", "desc": "Тормоз не работает — спасает только руль", "score": 1.5},
+	{"id": "night", "name": "Только ночь", "desc": "Весь заезд — ночь. Видно только то, что в свете фар", "score": 1.3},
+	{"id": "potholes", "name": "Двойные ямы", "desc": "Ям вдвое больше, и они с самого старта", "score": 1.35},
+	{"id": "glass", "name": "Хрустальная машина", "desc": "Любой удар отнимает вдвое больше прочности", "score": 1.5},
+	{"id": "rush", "name": "Час пик", "desc": "Встречных машин заметно больше", "score": 1.4},
+	{"id": "thirsty", "name": "Голодный бак", "desc": "Бензин уходит в полтора раза быстрее", "score": 1.35},
+]
+## Цели недели: очки за один заезд и награда (каждая — один раз за неделю)
+const WEEKLY_GOALS := [800, 2000, 4000]
+const WEEKLY_REWARDS := [150, 300, 600]
+
+
+static func get_weekly_rule(id: String) -> Dictionary:
+	for r in WEEKLY_RULES:
+		if r.id == id:
+			return r
+	return WEEKLY_RULES[0]
+const PLATE_LETTERS := "АВЕКМНОРСТУХ"     # буквы, которые бывают на номерах
+
+
+static func paint_price(color_html: String) -> int:
+	return GOLD_PRICE if color_html == GOLD_PAINT else PAINT_PRICE
+
+
+static func upgrade_price(level: int) -> int:
+	return UPGRADE_PRICES[clampi(level, 0, UPGRADE_PRICES.size() - 1)]
+
+
+static func get_decal(id: String) -> Dictionary:
+	for d in DECALS:
+		if d.id == id:
+			return d
+	return DECALS[0]
+
+
+## Номер по умолчанию: свой для каждой машины, но всегда 55-й регион
+static func default_plate(car_id: String) -> String:
+	var h := absi(car_id.hash())
+	var L := PLATE_LETTERS
+	return "%s%03d%s%s" % [L[h % L.length()], (h / 7) % 1000, L[(h / 13) % L.length()], L[(h / 17) % L.length()]]
+
+
+## Номер в формате «А123ВС»: буква, три цифры, две буквы (только допустимые)
+static func is_valid_plate(p: String) -> bool:
+	if p.length() != 6:
+		return false
+	for i in 6:
+		var ch := p[i]
+		if i >= 1 and i <= 3:
+			if not ch.is_valid_int():
+				return false
+		elif not PLATE_LETTERS.contains(ch):
+			return false
+	return p.substr(1, 3) != "000"
+
+
+static func get_landmark(id: String) -> Dictionary:
+	for l in LANDMARKS:
+		if l.id == id:
+			return l
+	return {}
+
+
+static func get_car(id: String) -> Dictionary:
+	for c in CARS:
+		if c.id == id:
+			return c
+	return CARS[0]
+
+
+static func get_location(id: String) -> Dictionary:
+	for l in LOCATIONS:
+		if l.id == id:
+			return l
+	return LOCATIONS[0]
+
+
+## Нормированные характеристики машины для полосок в магазине (0..1)
+static func car_stats(c: Dictionary) -> Array:
+	return [
+		["Скорость", clampf((c.speed - 580.0) / 440.0, 0.05, 1.0)],
+		["Разгон", clampf((c.accel - 50.0) / 190.0, 0.05, 1.0)],
+		["Управление", clampf((c.turn - 80.0) / 110.0, 0.05, 1.0)],
+		["Прочность", clampf(c.health / c.damage / 400.0, 0.05, 1.0)],
+		["Экономичность", clampf(1.0 - (c.fuel - 0.3) / 1.4, 0.05, 1.0)],
+	]

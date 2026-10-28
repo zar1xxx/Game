@@ -1,29 +1,48 @@
 extends Area2D
+## Гаечный ключ — полностью ремонтирует машину.
+
+var _t: float = 0.0
+
 
 func _ready() -> void:
-	# Подключаем встроенный сигнал касания тела к нашей функции
+	add_to_group("pickups")
 	body_entered.connect(_on_body_entered)
+	_t = randf() * TAU
+
 
 func _on_body_entered(body: Node2D) -> void:
-	# Проверяем, что в ключ врезался именно игрок
 	if body.is_in_group("player"):
-		# Если у игрока есть метод полного лечения, вызываем его
 		if body.has_method("heal_full"):
 			body.heal_full()
-		
-		# Удаляем ключ с карты после подбора
+		Pickup.burst(self, Art.GREEN, "Ремонт!", "repair")
+		Missions.event("repair")
 		queue_free()
 
-func _physics_process(_delta: float) -> void:
-	# Защита: если игрок проехал мимо и ключ остался далеко позади, удаляем его
-	keep_clean_outside_screen()
 
-func keep_clean_outside_screen() -> void:
-	var camera = get_viewport().get_camera_2d()
-	if camera:
-		var screen_size = get_viewport_rect().size
-		var zoom = camera.zoom
-		var view_height = screen_size.y / zoom.y
-		# Если ключ оказался сильно ниже экрана (игрок уехал вверх)
-		if global_position.y > camera.global_position.y + (view_height / 2.0) + 200.0:
-			queue_free()
+func _process(delta: float) -> void:
+	_t += delta
+	queue_redraw()
+
+
+func _physics_process(_delta: float) -> void:
+	Pickup.cleanup_if_behind(self)
+
+
+func _draw() -> void:
+	Pickup.draw_halo(self, Art.GREEN, _t)
+	var ang := 0.6 + sin(_t * 2.0) * 0.25
+	draw_set_transform(Art.SHADOW_OFFSET * 0.6, ang, Vector2.ONE)
+	_wrench_shape(Art.SHADOW)
+	draw_set_transform(Vector2.ZERO, ang, Vector2.ONE)
+	_wrench_shape(Art.SILVER)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _wrench_shape(col: Color) -> void:
+	draw_rect(Rect2(-4, -14, 8, 30), col)
+	draw_circle(Vector2(0, -16), 10, col)
+	draw_circle(Vector2(0, 18), 7, col)
+	if col != Art.SHADOW:
+		# Отверстия накидного ключа
+		draw_circle(Vector2(0, -16), 5, Art.INK)
+		draw_circle(Vector2(0, 18), 3, Art.INK)

@@ -1,0 +1,92 @@
+extends Control
+## Экран проигрыша: причина, итоговый счёт, рекорд и кнопки.
+
+const MENU_SCENE := "res://scenes/MainMenu.tscn"
+
+@onready var reason_label: Label = $Center/Panel/VBox/ReasonLabel
+@onready var score_label: Label = $Center/Panel/VBox/ScoreResult
+@onready var best_label: Label = $Center/Panel/VBox/BestResult
+@onready var new_record_label: Label = $Center/Panel/VBox/NewRecordLabel
+@onready var coins_label: Label = $Center/Panel/VBox/CoinsResult
+@onready var restart_button: Button = $Center/Panel/VBox/Buttons/RestartButton
+@onready var menu_button: Button = $Center/Panel/VBox/Buttons/MenuButton
+
+var _time: float = 0.0
+var _coins_total: int = 0
+var _coins_earned: int = 0
+var _last_coin_tick: int = -1
+
+
+func _ready() -> void:
+	restart_button.pressed.connect(_on_restart_pressed)
+	menu_button.pressed.connect(_on_menu_pressed)
+	new_record_label.hide()
+
+
+func show_result(reason: String, score: int, best: int, is_new_record: bool) -> void:
+	reason_label.text = reason
+	score_label.text = "Ваш счёт: 0"
+	best_label.text = "Рекорд трассы: %d" % SaveManager.get_location_best()
+	coins_label.text = "+0 монет"
+	new_record_label.visible = false
+	show()
+	modulate.a = 0.0
+	Sound.stop_music(1.5)
+	var panel := $Center/Panel as Control
+	panel.pivot_offset = panel.size / 2.0
+	panel.scale = Vector2(0.7, 0.7)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(self, "modulate:a", 1.0, 0.35)
+	tw.tween_property(panel, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	restart_button.grab_focus()
+	await get_tree().create_timer(0.5).timeout
+	Sound.play("gameover", -3.0, 1.0, 0.0)
+	# Счёт и монеты «набегают» на глазах
+	var earned: int = SaveManager.last_coins_earned
+	var total: int = SaveManager.coins
+	_coins_total = total
+	_coins_earned = earned
+	var ct := create_tween()
+	ct.tween_method(_set_score_text, 0.0, float(score), clampf(score / 400.0, 0.4, 1.4)) \
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	ct.tween_method(_set_coins_text, 0.0, float(earned), clampf(earned / 60.0, 0.3, 1.0))
+	await ct.finished
+	coins_label.text = "+%d монет   •   всего %d" % [earned, total]
+	if is_new_record:
+		new_record_label.visible = true
+		new_record_label.pivot_offset = new_record_label.size / 2.0
+		new_record_label.scale = Vector2(2.0, 2.0)
+		create_tween().tween_property(new_record_label, "scale", Vector2.ONE, 0.4) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		Sound.play("record", 0.0, 1.0, 0.0)
+		var fx = get_parent().get_node_or_null("HudFX")
+		if fx:
+			fx.confetti(180)
+
+
+func _set_score_text(v: float) -> void:
+	score_label.text = "Ваш счёт: %d" % int(v)
+
+
+func _set_coins_text(v: float) -> void:
+	coins_label.text = "+%d монет   •   всего %d" % [int(v), _coins_total - _coins_earned + int(v)]
+	# «Звон монет» — не на каждую монету, а с небольшим шагом
+	var tick := int(v / maxf(_coins_earned / 12.0, 1.0))
+	if tick != _last_coin_tick:
+		_last_coin_tick = tick
+		Sound.play("coin", -12.0, 1.0 + v / maxf(_coins_earned, 1.0) * 0.4, 0.0)
+
+
+func _process(delta: float) -> void:
+	if visible and new_record_label.visible:
+		_time += delta
+		new_record_label.modulate.a = 0.6 + 0.4 * sin(_time * 6.0)
+
+
+func _on_restart_pressed() -> void:
+	# Снимаем игру с паузы перед перезапуском, иначе новый уровень тоже запустится замороженным
+	Transition.reload()
+
+
+func _on_menu_pressed() -> void:
+	Transition.go(MENU_SCENE)
