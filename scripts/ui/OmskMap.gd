@@ -8,6 +8,8 @@ signal closed
 signal drive_requested            # «Ехать в Омск» — меню выбирает трассу и запускает заезд
 
 const MAP_SIZE := Vector2(540, 476)
+const OM_MOUTH_V := 0.53          # где на Иртыше устье Оми (0 — низ карты, 1 — верх)
+const IRTYSH_W := 38.0            # ширина воды Иртыша на схеме
 
 var _map: Control
 var _card: Control
@@ -131,10 +133,14 @@ func _build_geometry() -> void:
 	for k in 25:
 		var v := k / 24.0
 		_irtysh.append(Vector2(sz.x * (0.42 - 0.08 * sin(v * PI * 1.3) + 0.03 * sin(v * 9.0)), sz.y * (1.04 - v * 1.08)))
+	# Омь впадает в Иртыш: первая точка — на середине Иртыша (раньше устье было в 30 px
+	# от берега, и между реками оставался «сухой» пустырь)
 	_om = PackedVector2Array()
+	var mouth := _along_line(_irtysh, OM_MOUTH_V)
 	for k in 15:
 		var v := k / 14.0
-		_om.append(Vector2(sz.x * lerpf(0.43, 1.04, v), sz.y * (0.47 + 0.05 * sin(v * 6.0) + 0.04 * v)))
+		var y := sz.y * (0.47 + 0.05 * sin(v * 6.0) + 0.04 * v)
+		_om.append(Vector2(lerpf(mouth.x, sz.x * 1.04, v), lerpf(mouth.y, y, smoothstep(0.0, 0.25, v))))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 55
 	_blocks.clear()
@@ -337,7 +343,7 @@ func _draw_map() -> void:
 			ci.draw_line(p - perp, p + perp, Color("8a8f9c"), 1.5)
 	# Реки
 	ci.draw_polyline(_irtysh, Color("27507a"), 48.0, true)
-	ci.draw_polyline(_irtysh, Color("3c74a6"), 38.0, true)
+	ci.draw_polyline(_irtysh, Color("3c74a6"), IRTYSH_W, true)
 	ci.draw_polyline(_om, Color("27507a"), 22.0, true)
 	ci.draw_polyline(_om, Color("3c74a6"), 15.0, true)
 	# Блики на воде
@@ -345,10 +351,11 @@ func _draw_map() -> void:
 		var v := fmod(k / 10.0 + _t * 0.012, 1.0)
 		var p := _along_line(_irtysh, v)
 		ci.draw_line(p + Vector2(-5, 0), p + Vector2(5, 0), Color(1, 1, 1, 0.25), 2.0)
-	# Мосты: Ленинградский, Метромост, Юбилейный
-	_draw_bridge(ci, _along_line(_irtysh, 0.10), 0.12, 58.0, Color("c9cdd6"))
-	_draw_bridge(ci, _along_line(_irtysh, 0.30), 0.18, 58.0, Color("a9b8d6"))
-	_draw_bridge(ci, _along_line(_om, 0.17), PI / 2.0 - 0.1, 30.0, Color("d6cfb8"))
+	# Мосты: Ленинградский, Метромост (через Иртыш), Юбилейный (через Омь).
+	# Каждый стоит поперёк течения ровно под своей точкой на карте.
+	_draw_river_bridge(ci, _irtysh, "bridge", IRTYSH_W + 22.0, Color("c9cdd6"))
+	_draw_river_bridge(ci, _irtysh, "metromost", IRTYSH_W + 22.0, Color("a9b8d6"))
+	_draw_river_bridge(ci, _om, "yubileyny", 32.0, Color("d6cfb8"))
 	# Теплоход идёт по Иртышу
 	var bv := fmod(_t * 0.025, 1.0)
 	var bp := _along_line(_irtysh, bv)
@@ -357,8 +364,8 @@ func _draw_map() -> void:
 	Art.rrect(ci, Rect2(-11, -5, 22, 10), Color("eef0f6"), 5)
 	ci.draw_rect(Rect2(-3, -3, 8, 6), Art.RED)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	Art.text_center(ci, _along_line(_irtysh, 0.62) + Vector2(-34, 0), "Иртыш", 12, Color("bfe0ff"), true)
-	Art.text_center(ci, _along_line(_om, 0.7) + Vector2(0, -16), "Омь", 11, Color("bfe0ff"), true)
+	_river_label(ci, _along_line(_irtysh, 0.78), "Иртыш")
+	_river_label(ci, _along_line(_om, 0.72), "Омь")
 	# Роза ветров
 	var cp := Vector2(sz.x - 34, 34)
 	ci.draw_circle(cp, 20, Color(Art.UI_PANEL, 0.85))
@@ -379,6 +386,27 @@ func _draw_map() -> void:
 		Art.rrect(ci, Rect2(lp - Vector2(w / 2.0, 11), Vector2(w, 22)), Color(Art.INK, 0.9), 8, 2, Art.YELLOW)
 		Art.text_center(ci, lp, text, 13, Art.YELLOW, true)
 	Art.rrect(ci, Rect2(Vector2.ZERO, sz), Color(0, 0, 0, 0), 14, 3, Color("586079"))
+
+
+## Мост через реку line в том месте, где стоит точка достопримечательности lm_id
+func _draw_river_bridge(ci: CanvasItem, line: PackedVector2Array, lm_id: String, length: float, col: Color) -> void:
+	var pin := _pin_pos(GameData.get_landmark(lm_id))
+	var best := 0
+	var bd := 1e9
+	for i in line.size() - 1:
+		var q := Geometry2D.get_closest_point_to_segment(pin, line[i], line[i + 1])
+		if q.distance_to(pin) < bd:
+			bd = q.distance_to(pin)
+			best = i
+	var p := Geometry2D.get_closest_point_to_segment(pin, line[best], line[best + 1])
+	var dir := (line[best + 1] - line[best]).normalized()
+	_draw_bridge(ci, p, dir.angle() + PI / 2.0, length, col)
+
+
+func _river_label(ci: CanvasItem, p: Vector2, text: String) -> void:
+	var w := Art.font_bold.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 12.0
+	Art.rrect(ci, Rect2(p - Vector2(w / 2.0, 9), Vector2(w, 18)), Color("27507a", 0.9), 9)
+	Art.text_center(ci, p, text, 12, Color("dff0ff"), true)
 
 
 func _draw_bridge(ci: CanvasItem, p: Vector2, angle: float, length: float, col: Color) -> void:

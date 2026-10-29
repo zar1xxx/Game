@@ -62,6 +62,8 @@ func _ready() -> void:
 				hint_label.text = "Наклоняйте телефон, чтобы рулить   •   Касание %s — тормоз" % side
 			"swipe":
 				hint_label.text = "Свайп влево-вправо — сменить полосу   •   Держи палец — тормоз"
+			"drag":
+				hint_label.text = "Ведите пальцем влево-вправо — машина едет следом   •   ТОРМОЗ — %s" % side
 			_:
 				hint_label.text = "◀ ▶ — руль   •   ТОРМОЗ — %s" % side
 		hint_label.position.y -= 150.0   # над сенсорными кнопками

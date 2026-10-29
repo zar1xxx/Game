@@ -93,7 +93,7 @@ var _best_before_run: int = 0   # рекорд на момент старта з
 
 # --- Настройки (управление, вибрация) ---
 var settings := {
-	"control_mode": "buttons",     # "buttons" — кнопки на экране, "tilt" — наклон телефона
+	"control_mode": "drag",        # "drag" — ведение пальцем, "buttons" — кнопки, "tilt" — наклон, "swipe" — свайпы
 	"tilt_sensitivity": 1.0,       # 0.5 … 2.0
 	"tilt_invert": false,
 	"vibration": true,
@@ -105,6 +105,7 @@ var settings := {
 	"difficulty": "normal",        # "easy" — «Спокойно», "normal", "hard" — «Жёстко»
 	"mirror": false,               # зеркальная раскладка кнопок (для левшей)
 	"show_fps": false,             # счётчик кадров в углу во время заезда
+	"drag_v26": true,              # ведение пальцем уже предложено (см. _apply_loaded)
 }
 
 # --- Особые заезды (не сохраняются) ---
@@ -159,6 +160,12 @@ func _apply_loaded(cfg: ConfigFile) -> void:
 	total_score = int(cfg.get_value("stats", "total_score", 0))
 	for key in settings.keys():
 		settings[key] = cfg.get_value("settings", key, settings[key])
+	# v2.6: по отзывам тестировщиков кнопки ◀ ▶ неудобны — тем, кто их не менял,
+	# один раз включаем ведение пальцем (вернуть кнопки можно в настройках)
+	if not cfg.has_section_key("settings", "drag_v26"):
+		if settings.control_mode == "buttons":
+			settings.control_mode = "drag"
+	settings["drag_v26"] = true
 	coins = int(cfg.get_value("shop", "coins", 0))
 	owned_cars = cfg.get_value("shop", "owned_cars", ["orange"])
 	owned_locations = cfg.get_value("shop", "owned_locations", ["city"])
@@ -1181,7 +1188,7 @@ func dev_report() -> String:
 	lines.append("Видео: %s" % RenderingServer.get_video_adapter_name())
 	var gmode: String = {"auto": "Авто", "high": "Высокая", "eco": "Экономия"}.get(str(settings.get("graphics", "auto")), "?")
 	lines.append("Графика: %s, сейчас %s" % [gmode, q_names[clampi(graphics_quality(), 0, 2)]])
-	lines.append("Управление: %s%s" % [{"buttons": "кнопки", "tilt": "наклон", "swipe": "свайпы"}.get(MobileInput.get_mode(), "?"),
+	lines.append("Управление: %s%s" % [{"buttons": "кнопки", "tilt": "наклон", "swipe": "свайпы", "drag": "ведение"}.get(MobileInput.get_mode(), "?"),
 		", зеркально" if settings.get("mirror", false) else ""])
 	var st := last_run_stats
 	if st.is_empty():

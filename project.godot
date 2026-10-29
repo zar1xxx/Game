@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/version="2.5"
+config/version="2.6"
 config/name="В погоне за бензином"
 config/description="Бесконечная гонка по вечернему городу: уворачивайтесь от машин и собирайте бензин."
 run/main_scene="res://scenes/MainMenu.tscn"

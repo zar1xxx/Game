@@ -1,6 +1,6 @@
 extends Node
 ## Мобильный ввод (Autoload "MobileInput").
-## Собирает управление с сенсорных кнопок (TouchControls) и акселерометра
+## Собирает управление с сенсорных кнопок, ведения пальцем (TouchControls) и акселерометра
 ## в два значения, которые читает машина игрока:
 ##   steer_axis — руль от -1 (влево) до 1 (вправо)
 ##   brake      — нажат ли тормоз
@@ -21,6 +21,9 @@ var horn: bool = false              # кнопка гудка (TouchControls)
 var nitro: bool = false             # кнопка нитро (только у гиперкара)
 ## Режим «Свайпы»: на сколько полос перестроиться (копится, пока машина не перестроится)
 var swipe_lanes: int = 0
+## Режим «Ведение»: палец лежит на экране и на сколько пикселей он сдвинулся от места касания
+var drag_active: bool = false
+var drag_dx: float = 0.0
 
 var _tilt_neutral: float = 0.0
 var _tilt_value: float = 0.0
@@ -76,7 +79,7 @@ func has_vibration() -> bool:
 
 
 func get_mode() -> String:
-	var m: String = SaveManager.settings.get("control_mode", "buttons")
+	var m: String = SaveManager.settings.get("control_mode", "drag")
 	if m == "tilt" and not has_tilt() and OS.has_feature("mobile"):
 		return "buttons"
 	return m
@@ -135,5 +138,7 @@ func release_all() -> void:
 	horn = false
 	nitro = false
 	swipe_lanes = 0
+	drag_active = false
+	drag_dx = 0.0
 	steer_axis = 0.0
 	brake = false

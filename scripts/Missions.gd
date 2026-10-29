@@ -114,7 +114,9 @@ func reward_of(m: Dictionary) -> int:
 
 
 func short_text(m: Dictionary) -> String:
-	return POOL[m.id].short % target_of(m)
+	# У «Обогнать Коляна» в короткой подписи нет числа — «%» без «%d» роняет скрипт
+	var t: String = POOL[m.id].short
+	return t % target_of(m) if "%d" in t else t
 
 
 func full_text(m: Dictionary) -> String:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://ck55t2hsgs5cb"]
+[gd_scene load_steps=16 format=3 uid="uid://ck55t2hsgs5cb"]
 
 [ext_resource type="PackedScene" uid="uid://dm7448ocg0sm2" path="res://scenes/car.tscn" id="1_6e84v"]
 [ext_resource type="Script" uid="uid://dc3i3iidislvn" path="res://scripts/camera.gd" id="2_4vge2"]
@@ -13,6 +13,7 @@
 [ext_resource type="Script" uid="uid://cvo6mdw3ajldp" path="res://scripts/TouchControls.gd" id="16_touch"]
 [ext_resource type="Script" uid="uid://dd52xxvacrtbu" path="res://scripts/visual/WorldFX.gd" id="17_fx"]
 [ext_resource type="Script" uid="uid://csaux4j03yays" path="res://scripts/LaneWarning.gd" id="18_warn"]
+[ext_resource type="Script" path="res://scripts/visual/SideShade.gd" id="19_shade"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_caption"]
 font_size = 13
@@ -28,6 +29,9 @@ script = ExtResource("13_road")
 
 [node name="City" type="Node2D" parent="."]
 script = ExtResource("14_city")
+
+[node name="SideShade" type="Node2D" parent="."]
+script = ExtResource("19_shade")
 
 [node name="Car" parent="." instance=ExtResource("1_6e84v")]
 z_index = 1

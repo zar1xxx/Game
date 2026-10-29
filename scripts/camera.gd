@@ -10,7 +10,10 @@ extends Camera2D
 # --- Отъезд камеры на скорости ---
 # Чем быстрее едешь, тем шире обзор: встречные видно заранее. Машина игрока при этом
 # остаётся на том же месте экрана, просто мир чуть «уменьшается».
-@export var zoom_far: float = 0.84          # самый дальний вид (1.0 — обычный)
+# v2.6: тестировщики жаловались, что в альбомной ориентации почти не видно трассу впереди
+# и бонусы — камера теперь всегда чуть дальше (zoom_base), а на скорости отъезжает ещё.
+@export var zoom_base: float = 0.9          # обычный вид на малой скорости (1.0 — как раньше)
+@export var zoom_far: float = 0.8           # самый дальний вид
 @export var zoom_speed_from: float = 520.0  # с какой скорости камера начинает отъезжать
 @export var zoom_speed_to: float = 1250.0   # на какой скорости отъезжает полностью
 var _zoom: float = 1.0
@@ -33,7 +36,9 @@ func set_chase(source: String, value: float) -> void:
 
 func _ready() -> void:
 	add_to_group("game_camera")
-	Art.view_h_world = get_viewport_rect().size.y
+	_zoom = zoom_base
+	zoom = Vector2(_zoom, _zoom)
+	Art.view_h_world = get_viewport_rect().size.y / _zoom
 
 
 func _exit_tree() -> void:
@@ -70,7 +75,7 @@ func _update_zoom(delta: float) -> void:
 	if "is_dead" in player and player.is_dead:
 		spd = 0.0
 	var k := clampf((spd - zoom_speed_from) / (zoom_speed_to - zoom_speed_from), 0.0, 1.0)
-	var target := lerpf(1.0, zoom_far, k)
+	var target := lerpf(zoom_base, zoom_far, k)
 	# Отъезжает плавно, а после удара возвращается чуть быстрее
 	_zoom = move_toward(_zoom, target, delta * (0.07 if target < _zoom else 0.11))
 	zoom = Vector2(_zoom, _zoom)

@@ -30,15 +30,15 @@ var _time: float = 0.0
 var _tip_label: Label
 var _tip_index: int = -1
 var _controls_text: String = ""
-var _missions_card: Control = null
-var _daily_card: Control = null
+var _tasks: Control = null             # экран «Задания» (задания на заезд, заезд дня, неделя, награда за вход)
+var _tasks_button: Button = null
 var _settings_scroll: ScrollContainer = null
 var _profile: Control = null
 var _settings_cols: Control = null
 var _graphics_buttons: Dictionary = {}
 var _graphics_hint: Label = null
-var _daily_tab: String = "day"          # вкладка правой карточки: "day" — заезд дня, "week" — испытание недели
 var _level_card: Control = null
+var _level_compact: bool = false       # на узком экране плашка уровня сжимается до значка
 var _achievements: Control = null
 var _leaderboard: Control = null
 var _omsk_map: Control = null
@@ -49,6 +49,7 @@ var _diff_button: Button = null
 var _friends: Control = null
 var _transfer: Control = null
 var _mode_swipe: Button = null
+var _mode_drag: Button = null
 var _mirror_check: CheckBox = null
 var _fps_check: CheckBox = null
 
@@ -71,7 +72,7 @@ const TIPS := [
 	"Совет: после заезда игра даёт код вызова. Отправьте его другу — пусть попробует побить",
 	"Метромост через Иртыш открыли в 2005 году. Нижний ярус до сих пор ждёт поезда метро",
 	"Художник Михаил Врубель родился в Омске в 1856 году",
-	"Совет: на телефоне можно рулить свайпами или включить зеркальные кнопки — в настройках",
+	"Совет: на телефоне можно рулить ведением пальца, кнопками или свайпами — в настройках",
 	"Совет: скорая помощь чинится сама, а такси приносит больше монет",
 	"Если вы видите табличку «Омск 0 км» — поздравляем, вы всё ещё в Омске",
 	"Любочка сидит на скамейке на Ленина и ждёт, когда вы побьёте рекорд",
@@ -123,8 +124,8 @@ func _ready() -> void:
 	quit_button.pressed.connect(_on_quit_pressed)
 	_setup_settings()
 	if MobileInput.is_touch_device():
-		controls_label.text = "Управление: кнопки ◀ ▶ и ТОРМОЗ" + \
-			(" или наклон — в настройках" if MobileInput.has_tilt() else "")
+		controls_label.text = "Управление: ведите пальцем влево-вправо, педаль — тормоз. Кнопки, свайпы" + \
+			(" и наклон" if MobileInput.has_tilt() else "") + " — в настройках"
 	SaveManager.best_score_changed.connect(func(_v): _refresh())
 	_refresh()
 	start_button.grab_focus()
@@ -146,13 +147,11 @@ func _ready() -> void:
 	Sound.set_music_filter(0.0)
 	Sound.duck(false)
 	_build_tips()
-	_build_missions_card()
-	# Есть невыданная награда недели — сразу открываем вкладку «Неделя»
-	if SaveManager.weekly_unclaimed_reward() > 0:
-		_daily_tab = "week"
-	_build_daily_card()
 	_build_level_card()
 	_build_button_rows()
+	# Плашка уровня стоит по якорям и подстраивается под ширину экрана и вырезы камеры
+	get_viewport().size_changed.connect(_layout_level_card)
+	_layout_level_card.call_deferred()
 	_layout_settings()
 	# Контейнер по центру растянут на весь экран — он не должен перехватывать нажатия
 	# у карточек по краям (из-за этого не нажимались «Ехать» и «Забрать» справа)
@@ -186,10 +185,8 @@ func _refresh() -> void:
 	var loc := GameData.get_location(SaveManager.selected_location)
 	var car := GameData.get_car(SaveManager.selected_car)
 	selection_label.text = "%s   •   %s   •   %d монет" % [car.name, loc.name, SaveManager.coins]
-	if _missions_card:
-		_fill_missions_card()
-	if _daily_card:
-		_fill_daily_card()
+	if _tasks_button:
+		_update_tasks_button()
 	if _level_card:
 		_fill_level_card()
 	if SaveManager.games_played == 0:
@@ -256,6 +253,17 @@ func _setup_settings() -> void:
 	_mode_swipe.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_mode_swipe.pressed.connect(func(): _set_mode("swipe"))
 	mode_buttons.get_parent().add_child(_mode_swipe)
+	# v2.6: ведение пальцем — первое в ряду и по умолчанию (кнопки тестировщикам не понравились)
+	_mode_drag = Button.new()
+	_mode_drag.text = "Ведение"
+	_mode_drag.toggle_mode = true
+	_mode_drag.button_group = group
+	_mode_drag.custom_minimum_size = mode_buttons.custom_minimum_size
+	_mode_drag.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_mode_drag.tooltip_text = "Ведите пальцем влево-вправо в любом месте внизу экрана — машина едет следом"
+	_mode_drag.pressed.connect(func(): _set_mode("drag"))
+	mode_buttons.get_parent().add_child(_mode_drag)
+	mode_buttons.get_parent().move_child(_mode_drag, 0)
 	sens_slider.value_changed.connect(func(v: float):
 		SaveManager.set_setting("tilt_sensitivity", v)
 		sens_caption.text = "Чувствительность наклона: %.1f" % v)
@@ -481,6 +489,8 @@ func _open_settings() -> void:
 	mode_tilt.button_pressed = cm == "tilt"
 	if _mode_swipe:
 		_mode_swipe.button_pressed = cm == "swipe"
+	if _mode_drag:
+		_mode_drag.button_pressed = cm == "drag"
 	sens_slider.set_value_no_signal(st.tilt_sensitivity)
 	sens_caption.text = "Чувствительность наклона: %.1f" % st.tilt_sensitivity
 	if _name_edit:
@@ -527,6 +537,8 @@ func _notification(what: int) -> void:
 			_profile.close()
 		elif _omsk_map and _omsk_map.visible:
 			_omsk_map.close()
+		elif _tasks and _tasks.visible:
+			_tasks.close()
 		elif _friends and _friends.visible:
 			_friends.close()
 		elif _transfer and _transfer.visible:
@@ -580,69 +592,6 @@ func _next_tip() -> void:
 
 
 # ---------------------------------------------------------------------------
-# Карточка «Задания на заезд» слева от меню
-# ---------------------------------------------------------------------------
-func _build_missions_card() -> void:
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(262, 0)
-	panel.position = Vector2(14 + MobileInput.safe_insets(get_viewport()).x, 160)
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var vb := VBoxContainer.new()
-	vb.name = "VB"
-	vb.add_theme_constant_override("separation", 8)
-	panel.add_child(vb)
-	ui_root.add_child(panel)
-	ui_root.move_child(panel, $UI/UIRoot/Center.get_index())
-	_missions_card = panel
-	_fill_missions_card()
-	panel.modulate.a = 0.0
-	panel.position.x -= 60.0
-	var tw := panel.create_tween().set_parallel(true)
-	tw.tween_property(panel, "modulate:a", 1.0, 0.4).set_delay(0.35)
-	tw.tween_property(panel, "position:x", 14.0 + MobileInput.safe_insets(get_viewport()).x, 0.5).set_delay(0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-
-
-func _fill_missions_card() -> void:
-	var vb := _missions_card.get_node("VB")
-	for c in vb.get_children():
-		c.queue_free()
-	var title := Label.new()
-	title.text = "ЗАДАНИЯ НА ЗАЕЗД"
-	title.add_theme_font_override("font", Art.font_title)
-	title.add_theme_font_size_override("font_size", 20)
-	title.add_theme_color_override("font_color", Art.ORANGE)
-	vb.add_child(title)
-	for i in Missions.SLOTS:
-		var m := Missions.get_slot(i)
-		if m.is_empty():
-			continue
-		var row := VBoxContainer.new()
-		row.add_theme_constant_override("separation", 0)
-		var l := Label.new()
-		l.text = "•  " + Missions.full_text(m)
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.custom_minimum_size.x = 232
-		l.add_theme_font_size_override("font_size", 15)
-		if not Missions.is_available_here(m):
-			l.add_theme_color_override("font_color", Art.UI_MUTED)
-		row.add_child(l)
-		var r := Label.new()
-		r.text = "    награда: %d монет" % Missions.reward_of(m)
-		r.add_theme_font_size_override("font_size", 13)
-		r.add_theme_color_override("font_color", Art.YELLOW)
-		row.add_child(r)
-		vb.add_child(row)
-	var foot := Label.new()
-	foot.text = "Все три за один заезд: +%d монет\nВыполнено: %d   •   Лучшее комбо: ×%d" % [
-		Missions.HATTRICK_REWARD, SaveManager.missions_done, SaveManager.best_combo]
-	foot.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	foot.custom_minimum_size.x = 232
-	foot.add_theme_font_size_override("font_size", 12)
-	foot.add_theme_color_override("font_color", Art.UI_MUTED)
-	vb.add_child(foot)
-
-
-# ---------------------------------------------------------------------------
 # Кнопки по две в ряд + таблица рекордов
 # ---------------------------------------------------------------------------
 func _build_button_rows() -> void:
@@ -673,7 +622,12 @@ func _build_button_rows() -> void:
 	friends_button.text = "С друзьями"
 	friends_button.add_theme_font_size_override("font_size", settings_button.get_theme_font_size("font_size"))
 	friends_button.custom_minimum_size.y = settings_button.custom_minimum_size.y
-	var rows := [[shop_button, garage_button, ach_button], [map_button, lb_button], [settings_button, friends_button, quit_button]]
+	# Задания, заезд дня и неделя — отдельный экран, а не карточки по краям меню
+	_tasks_button = Button.new()
+	_tasks_button.text = "Задания"
+	_tasks_button.add_theme_font_size_override("font_size", shop_button.get_theme_font_size("font_size"))
+	_tasks_button.custom_minimum_size.y = shop_button.custom_minimum_size.y
+	var rows := [[shop_button, garage_button, ach_button], [_tasks_button, map_button, lb_button], [settings_button, friends_button, quit_button]]
 	var at: int = start_button.get_index() + 1
 	for pair in rows:
 		var row := HBoxContainer.new()
@@ -734,6 +688,27 @@ func _build_button_rows() -> void:
 		_omsk_map.hide()
 		SaveManager.select("location", "omsk")
 		_on_start_pressed())
+	_tasks = preload("res://scripts/ui/TasksScreen.gd").new()
+	ui_root.add_child(_tasks)
+	_tasks.closed.connect(func():
+		$UI/UIRoot/Center.show()
+		_side_cards(true)
+		_refresh()
+		_tasks_button.grab_focus())
+	_tasks_button.pressed.connect(func():
+		$UI/UIRoot/Center.hide()
+		_side_cards(false)
+		_tasks.open())
+	_tasks.daily_requested.connect(func():
+		_tasks.hide()
+		_on_daily_pressed())
+	_tasks.weekly_requested.connect(func():
+		_tasks.hide()
+		_on_weekly_pressed())
+	_tasks.message.connect(func(msg: String):
+		_refresh()
+		_flash_message(msg))
+	_update_tasks_button()
 	_friends = preload("res://scripts/ui/FriendsScreen.gd").new()
 	ui_root.add_child(_friends)
 	_friends.closed.connect(func():
@@ -871,37 +846,22 @@ func _apply_cheat(code: String) -> bool:
 
 
 func _side_cards(on: bool) -> void:
-	if _missions_card:
-		_missions_card.visible = on
-	if _daily_card:
-		_daily_card.visible = on
 	if _level_card:
 		_level_card.visible = on
 
 
 # ---------------------------------------------------------------------------
-# Заезд дня и награда за вход — карточка справа
+# Экран «Задания» и заезд дня / испытание недели
 # ---------------------------------------------------------------------------
-func _build_daily_card() -> void:
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(230, 0)
-	panel.anchor_left = 1.0
-	panel.anchor_right = 1.0
-	var ins_r := MobileInput.safe_insets(get_viewport()).z
-	panel.offset_left = -244 - ins_r
-	panel.offset_right = -14 - ins_r
-	panel.offset_top = 14
-	var vb := VBoxContainer.new()
-	vb.name = "VB"
-	vb.add_theme_constant_override("separation", 6)
-	panel.add_child(vb)
-	ui_root.add_child(panel)
-	ui_root.move_child(panel, $UI/UIRoot/Center.get_index())
-	_daily_card = panel
-	_fill_daily_card()
-	panel.modulate.a = 0.0
-	var tw := panel.create_tween()
-	tw.tween_property(panel, "modulate:a", 1.0, 0.4).set_delay(0.45)
+func _update_tasks_button() -> void:
+	var star: bool = preload("res://scripts/ui/TasksScreen.gd").has_reward()
+	_tasks_button.text = "Задания ★" if star else "Задания"
+	if star:
+		_tasks_button.add_theme_color_override("font_color", Art.YELLOW)
+		_tasks_button.add_theme_color_override("font_focus_color", Art.YELLOW)
+	else:
+		_tasks_button.remove_theme_color_override("font_color")
+		_tasks_button.remove_theme_color_override("font_focus_color")
 
 
 func _card_label(text: String, size_px: int, color: Color, title: bool = false) -> Label:
@@ -914,118 +874,6 @@ func _card_label(text: String, size_px: int, color: Color, title: bool = false) 
 	if title:
 		l.add_theme_font_override("font", Art.font_title)
 	return l
-
-
-func _fill_daily_card() -> void:
-	var vb := _daily_card.get_node("VB")
-	for c in vb.get_children():
-		c.queue_free()
-	# Вкладки «День» / «Неделя»
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 6)
-	vb.add_child(tabs)
-	for item in [["day", "День"], ["week", "Неделя"]]:
-		var tb := Button.new()
-		tb.text = item[1]
-		if item[0] == "week" and SaveManager.weekly_unclaimed_reward() > 0:
-			tb.text = "Неделя ★"
-			tb.add_theme_color_override("font_color", Art.YELLOW)
-		tb.toggle_mode = true
-		tb.button_pressed = _daily_tab == item[0]
-		tb.custom_minimum_size = Vector2(0, 34)
-		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tb.add_theme_font_size_override("font_size", 15)
-		var id: String = item[0]
-		tb.pressed.connect(func():
-			_daily_tab = id
-			Sound.play("click", -8.0)
-			_fill_daily_card.call_deferred())
-		tabs.add_child(tb)
-	if _daily_tab == "week":
-		_fill_weekly(vb)
-	else:
-		_fill_daily(vb)
-	var sep := HSeparator.new()
-	vb.add_child(sep)
-	vb.add_child(_card_label("НАГРАДА ЗА ВХОД", 16, Art.ORANGE, true))
-	var claim := Button.new()
-	claim.custom_minimum_size = Vector2(0, 42)
-	claim.add_theme_font_size_override("font_size", 16)
-	if SaveManager.login_reward_available():
-		var streak := (SaveManager.login_streak + 1) if SaveManager.login_day == SaveManager.today() - 1 else 1
-		vb.add_child(_card_label("День %d подряд" % streak, 13, Art.UI_TEXT))
-		claim.text = "Забрать +%d" % SaveManager.login_reward_amount()
-		claim.pressed.connect(_on_claim_pressed)
-	else:
-		vb.add_child(_card_label("День %d подряд. Завтра: +%d" % [SaveManager.login_streak,
-			SaveManager.login_reward_amount(SaveManager.login_streak + 1)], 13, Art.UI_MUTED))
-		claim.text = "Получено ✓"
-		claim.disabled = true
-	vb.add_child(claim)
-
-
-func _fill_daily(vb: VBoxContainer) -> void:
-	var loc := GameData.get_location(SaveManager.daily_location_id())
-	var d := Time.get_date_dict_from_system()
-	vb.add_child(_card_label("ЗАЕЗД ДНЯ", 20, Art.ORANGE, true))
-	vb.add_child(_card_label("%02d.%02d  •  одна трасса для всех" % [d.day, d.month], 12, Art.UI_MUTED))
-	vb.add_child(_card_label(loc.name, 17, Art.UI_TEXT, true))
-	var bonus := ("%.2f" % SaveManager.DAILY_BONUS).replace(".", ",").trim_suffix("0")
-	vb.add_child(_card_label("Очки ×%s  •  рекорд дня: %d" % [bonus, SaveManager.get_daily_best()], 13, Art.YELLOW))
-	if not SaveManager.is_owned("location", loc.id):
-		vb.add_child(_card_label("Трасса не куплена — сегодня можно попробовать бесплатно!", 12, Art.TEAL))
-	var go := Button.new()
-	go.text = "Ехать"
-	go.custom_minimum_size = Vector2(0, 42)
-	go.add_theme_font_size_override("font_size", 18)
-	go.pressed.connect(_on_daily_pressed)
-	vb.add_child(go)
-
-
-## Испытание недели: правило, трасса, рекорд недели и три цели
-func _fill_weekly(vb: VBoxContainer) -> void:
-	var rule := SaveManager.weekly_rule()
-	var loc := GameData.get_location(SaveManager.weekly_location_id())
-	vb.add_child(_card_label("ИСПЫТАНИЕ НЕДЕЛИ", 18, Art.ORANGE, true))
-	vb.add_child(_card_label("%s  •  %s" % [SaveManager.week_dates_text(), loc.name], 12, Art.UI_MUTED))
-	vb.add_child(_card_label("«%s»" % rule.name, 17, Art.UI_TEXT, true))
-	vb.add_child(_card_label(rule.desc, 12, Art.TEAL))
-	var mult := ("%.2f" % rule.score).replace(".", ",").trim_suffix("0")
-	vb.add_child(_card_label("Очки ×%s  •  рекорд недели: %d" % [mult, SaveManager.get_weekly_best()], 13, Art.YELLOW))
-	var claimed := SaveManager.get_weekly_claimed()
-	var reached := SaveManager.get_weekly_reached()
-	vb.add_child(_card_label("Цели за один заезд в испытании:", 12, Art.UI_MUTED))
-	var goals := ""
-	for i in GameData.WEEKLY_GOALS.size():
-		var mark := "✓" if i < claimed else ("★" if i < reached else "○")
-		goals += "%s %d очков — +%d\n" % [mark, GameData.WEEKLY_GOALS[i], GameData.WEEKLY_REWARDS[i]]
-	var gl := _card_label(goals.strip_edges(), 13, Art.UI_TEXT)
-	vb.add_child(gl)
-	var unclaimed := SaveManager.weekly_unclaimed_reward()
-	if unclaimed > 0:
-		var take := Button.new()
-		take.text = "Забрать +%d" % unclaimed
-		take.custom_minimum_size = Vector2(0, 42)
-		take.add_theme_font_size_override("font_size", 17)
-		take.add_theme_color_override("font_color", Art.YELLOW)
-		take.pressed.connect(_on_weekly_claim)
-		vb.add_child(take)
-	var go := Button.new()
-	go.text = "Принять вызов"
-	go.custom_minimum_size = Vector2(0, 42)
-	go.add_theme_font_size_override("font_size", 17)
-	go.pressed.connect(_on_weekly_pressed)
-	vb.add_child(go)
-
-
-func _on_weekly_claim() -> void:
-	var amount := SaveManager.claim_weekly()
-	if amount <= 0:
-		return
-	Sound.play("buy", 0.0, 1.0, 0.0)
-	Sound.play("record", -4.0, 1.1, 0.0)
-	_refresh()
-	_flash_message("Награда недели: +%d монет!" % amount)
 
 
 func _on_weekly_pressed() -> void:
@@ -1041,7 +889,9 @@ func _on_weekly_pressed() -> void:
 func _build_level_card() -> void:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(262, 0)
-	panel.position = Vector2(14 + MobileInput.safe_insets(get_viewport()).x, 14)
+	# Якорь — левый верхний угол; отступы пересчитывает _layout_level_card()
+	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	panel.grow_horizontal = Control.GROW_DIRECTION_END
 	# Плашка уровня нажимается — открывает профиль водителя
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -1063,11 +913,35 @@ func _build_level_card() -> void:
 	panel.create_tween().tween_property(panel, "modulate:a", 1.0, 0.4).set_delay(0.3)
 
 
+## Ставит плашку уровня в левый верхний угол с учётом выреза камеры. Если слева от меню
+## не хватает места (16:9, планшеты), плашка сжимается до значка уровня и не наезжает на меню.
+## Вызывается при каждом изменении размера окна — раньше позиция считалась один раз.
+func _layout_level_card() -> void:
+	if _level_card == null:
+		return
+	var ins := MobileInput.safe_insets(get_viewport())
+	var vw := get_viewport().get_visible_rect().size.x
+	var menu_w := ($UI/UIRoot/Center/Panel as Control).get_combined_minimum_size().x
+	var room := (vw - menu_w) / 2.0 - ins.x - 14.0 - 10.0
+	# Полная ширина плашки: строка опыта (232) + поля панели из темы
+	var full_w := maxf(262.0, 232.0 + _level_card.get_theme_stylebox("panel").get_minimum_size().x)
+	var compact := room < full_w
+	if compact != _level_compact:
+		_level_compact = compact
+		_fill_level_card()
+	_level_card.custom_minimum_size.x = 0.0 if compact else 262.0
+	_level_card.position = Vector2(14.0 + ins.x, 14.0)
+	_level_card.reset_size()
+
+
 func _fill_level_card() -> void:
 	var vb := _level_card.get_node("VB")
 	for c in vb.get_children():
+		# Убираем сразу, а не в конце кадра — иначе reset_size() считает по старому содержимому
+		vb.remove_child(c)
 		c.queue_free()
 	var lvl := SaveManager.get_level()
+	_level_card.tooltip_text = ""
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 8)
 	vb.add_child(head)
@@ -1078,16 +952,26 @@ func _fill_level_card() -> void:
 		badge.draw_circle(Vector2(20, 20), 15, Art.ORANGE)
 		Art.text_center(badge, Vector2(20, 20), str(lvl), 17, Art.INK, true))
 	head.add_child(badge)
+	if _level_compact:
+		_level_card.tooltip_text = "Уровень %d — %s. Нажмите, чтобы открыть профиль." % [lvl, GameData.level_title(lvl)]
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		return
 	var names := VBoxContainer.new()
+	names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	names.add_theme_constant_override("separation", -2)
 	head.add_child(names)
 	var t := _card_label("Уровень %d  •  всего опыта %d" % [lvl, SaveManager.xp], 13, Art.UI_MUTED)
 	t.autowrap_mode = TextServer.AUTOWRAP_OFF
 	t.custom_minimum_size.x = 0
+	# Длинные подписи обрезаются многоточием — иначе плашка росла вширь и наезжала на меню
+	t.clip_text = true
+	t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	names.add_child(t)
 	var title := _card_label(GameData.level_title(lvl), 18, Art.UI_TEXT, true)
 	title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	title.custom_minimum_size.x = 0
+	title.clip_text = true
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	names.add_child(title)
 	var pr := GameData.level_progress(SaveManager.xp)
 	var bar := ProgressBar.new()
@@ -1117,7 +1001,7 @@ func _fill_level_card() -> void:
 	more.add_theme_font_override("font", Art.font_title)
 	more.add_theme_font_size_override("font_size", 30)
 	more.add_theme_color_override("font_color", Art.TEAL)
-	more.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	more.size_flags_horizontal = Control.SIZE_SHRINK_END
 	more.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	more.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	head.add_child(more)
@@ -1146,16 +1030,6 @@ func _on_daily_pressed() -> void:
 	SaveManager.start_daily()
 	Sound.play("horn", -6.0, 1.1, 0.0)
 	Transition.go(GAME_SCENE)
-
-
-func _on_claim_pressed() -> void:
-	var amount := SaveManager.claim_login_reward()
-	if amount <= 0:
-		return
-	Sound.play("buy", 0.0, 1.0, 0.0)
-	Sound.play("coin", -2.0, 1.2, 0.0)
-	_refresh()
-	_flash_message("Награда за вход: +%d монет!" % amount)
 
 
 func _flash_message(msg: String) -> void:

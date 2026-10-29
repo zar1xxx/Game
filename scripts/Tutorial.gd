@@ -245,6 +245,8 @@ func _next_step() -> void:
 				match MobileInput.get_mode():
 					"swipe":
 						steer_text = "Проведите пальцем влево или вправо — машина перестроится на соседнюю полосу. Попробуйте в обе стороны."
+					"drag":
+						steer_text = "Положите палец внизу экрана и ведите влево-вправо — машина едет следом. Попробуйте в обе стороны."
 					"tilt":
 						steer_text = "Наклоняйте телефон влево и вправо — машина поворачивает. Попробуйте в обе стороны."
 					_:
@@ -384,7 +386,7 @@ func _draw_marks() -> void:
 	var col := Color(Art.YELLOW, 0.5 + 0.5 * pulse)
 	match STEPS[_step]:
 		"steer":
-			if _touch:
+			if _touch and MobileInput.get_mode() == "buttons":
 				_ring(Vector2(26 + 62, vs.y - 26 - 62), 72 + pulse * 6, col)
 				_ring(Vector2(26 + 62 * 3 + 24, vs.y - 26 - 62), 72 + pulse * 6, col)
 		"brake":

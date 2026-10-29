@@ -688,6 +688,9 @@ func get_input() -> void:
 	# Режим «Свайпы»: машина сама держит полосу и перестраивается на соседнюю по свайпу
 	if MobileInput.get_mode() == "swipe" and MobileInput.is_touch_device():
 		touch = _swipe_steer()
+	# Режим «Ведение»: машина едет за пальцем, который тянут влево-вправо
+	elif MobileInput.get_mode() == "drag" and MobileInput.is_touch_device():
+		touch = _drag_steer()
 	steer_input = clampf(keys + touch, -1.0, 1.0)
 	is_braking = Input.is_action_pressed("ui_down") or Input.is_physical_key_pressed(KEY_S) \
 		or MobileInput.brake
@@ -724,6 +727,42 @@ func _swipe_steer() -> float:
 	if absf(dx) < 4.0 and absf(rotation) < 0.03:
 		return 0.0
 	return clampf(dx / 85.0 - rotation * 1.6, -1.0, 1.0)
+
+
+const DRAG_GAIN := 1.6          # палец сдвинулся на 100 px — машина на 160 px (так хватает полэкрана)
+var _drag_was: bool = false
+var _drag_x0: float = 0.0       # где была машина, когда палец коснулся экрана
+
+
+## Ведение пальцем: целевая точка = место машины в момент касания + сдвиг пальца.
+## Работает как тачпад — не нужно держать палец прямо на машине и закрывать её.
+func _drag_steer() -> float:
+	if not MobileInput.drag_active:
+		_drag_was = false
+		return 0.0
+	var cam := get_viewport().get_camera_2d()
+	var k := DRAG_GAIN / (cam.zoom.x if cam else 1.0)
+	if not _drag_was:
+		_drag_was = true
+		_drag_x0 = global_position.x
+	# Занесло на масле или отбросило ударом — целимся от того места, где оказались
+	if slip_time_left > 0.0 or recovery_time_left > recovery_duration - 0.2:
+		_drag_x0 = global_position.x - MobileInput.drag_dx * k
+	var lo := Art.ROAD_LEFT + CAR_WIDTH / 2.0 + 14.0
+	var hi := Art.ROAD_RIGHT - CAR_WIDTH / 2.0 - 14.0
+	var tx := _drag_x0 + MobileInput.drag_dx * k
+	# Палец ушёл дальше края дороги — сдвигаем точку отсчёта, чтобы обратное движение
+	# сразу поворачивало машину, а не «выбирало» лишний ход
+	if tx < lo:
+		_drag_x0 += lo - tx
+		tx = lo
+	elif tx > hi:
+		_drag_x0 -= tx - hi
+		tx = hi
+	var dx := tx - global_position.x
+	if absf(dx) < 3.0 and absf(rotation) < 0.03:
+		return 0.0
+	return clampf(dx / 70.0 - rotation * 1.6, -1.0, 1.0)
 
 
 ## Гудок выбранного в гараже звука (кнопку можно держать — повторяется не чаще раза в 0,7 с)

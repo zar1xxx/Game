@@ -33,6 +33,11 @@ func _on_body_entered(body: Node2D) -> void:
 		queue_free()
 
 
+## Цвет метки у верхнего края экрана, пока бонус ещё не виден (LaneWarning)
+func halo_color() -> Color:
+	return Art.ORANGE
+
+
 func _process(delta: float) -> void:
 	_t += delta
 	queue_redraw()

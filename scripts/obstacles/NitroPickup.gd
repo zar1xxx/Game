@@ -12,6 +12,11 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 
 
+## Цвет метки у верхнего края экрана, пока бонус ещё не виден (LaneWarning)
+func halo_color() -> Color:
+	return Art.TEAL
+
+
 func _process(delta: float) -> void:
 	_t += delta
 	queue_redraw()

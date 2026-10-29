@@ -6,6 +6,7 @@ extends Control
 ## Ограждения: знак «!» в треугольнике над КАЖДОЙ перекрытой полосой (по всей ширине
 ## отбойника), а над проездом — зелёная стрелка. Так сразу видно, где дыра: слева, справа
 ## или посередине. Знак над вашей полосой мигает.
+## Бонусы: цветная капля над местом, где скоро появится канистра, нитро, ключ или бонус.
 
 @export var look_ahead: float = 1400.0     # как далеко за краем экрана замечаем машины
 
@@ -81,6 +82,26 @@ func _draw() -> void:
 			for o in row.nodes:
 				_remember(o, still_warned, -12.0)
 	_warned = still_warned
+	# --- Бонусы впереди (v2.6): цветная капля над полосой, где лежит бонус ---
+	for pk in get_tree().get_nodes_in_group("pickups"):
+		if not pk.has_method("halo_color"):
+			continue
+		var dist: float = top_world - (pk.global_position.y + 30.0)
+		if dist <= 0.0 or dist > look_ahead * 0.7:
+			continue
+		var k: float = 1.0 - dist / (look_ahead * 0.7)
+		_bonus_mark((xf * Vector2(pk.global_position.x, 0)).x, 7.0 + 5.0 * k, pk.halo_color(), k)
+
+
+## Метка бонуса: кружок цвета бонуса со стрелкой вниз, чуть ниже стрелок о встречных
+func _bonus_mark(x: float, r: float, col: Color, k: float) -> void:
+	var c := Vector2(x, 54.0)
+	var a := 0.55 + 0.45 * k
+	Art.glow(self, c, r * 2.6, Color(col, 0.3 * a))
+	draw_circle(c, r, Color(col, a))
+	draw_arc(c, r, 0, TAU, 20, Color(Art.INK, 0.8 * a), 2.0, true)
+	var tip := PackedVector2Array([c + Vector2(-r * 0.6, r + 3.0), c + Vector2(r * 0.6, r + 3.0), c + Vector2(0, r + 3.0 + r * 0.7)])
+	draw_colored_polygon(tip, Color(col, a))
 
 
 func _remember(node: Node, still: Dictionary, volume: float) -> void:

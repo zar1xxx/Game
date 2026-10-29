@@ -5,8 +5,13 @@ extends RefCounted
 
 static func draw_halo(ci: CanvasItem, color: Color, t: float) -> void:
 	var pulse := 0.5 + 0.5 * sin(t * 4.0)
-	Art.glow(ci, Vector2.ZERO, 38 + pulse * 6, Color(color, 0.35), 6)
-	ci.draw_arc(Vector2.ZERO, 30 + pulse * 3, 0, TAU, 32, Color(color, 0.7), 2.5)
+	# v2.6: бонусы ярче и заметнее — тёмная подложка отделяет их от асфальта,
+	# а расходящееся кольцо-«маяк» видно издалека даже краем глаза
+	ci.draw_circle(Vector2.ZERO, 30, Color(Art.INK, 0.35))
+	Art.glow(ci, Vector2.ZERO, 46 + pulse * 8, Color(color, 0.55), 6)
+	ci.draw_arc(Vector2.ZERO, 31 + pulse * 3, 0, TAU, 32, Color(color, 0.95), 3.5)
+	var wave := fmod(t * 0.9, 1.0)
+	ci.draw_arc(Vector2.ZERO, 34 + wave * 34, 0, TAU, 32, Color(color, 0.6 * (1.0 - wave)), 3.0)
 
 
 ## Всплывающая надпись при подборе

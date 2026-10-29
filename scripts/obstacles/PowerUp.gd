@@ -25,6 +25,11 @@ func _ready() -> void:
 	_t = randf() * 3.0
 
 
+## Цвет метки у верхнего края экрана, пока бонус ещё не виден (LaneWarning)
+func halo_color() -> Color:
+	return KINDS[kind].color
+
+
 func _process(delta: float) -> void:
 	_t += delta
 	queue_redraw()

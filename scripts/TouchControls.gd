@@ -2,6 +2,8 @@ extends Control
 ## Сенсорное управление для телефонов и планшетов.
 ## Режим «Кнопки»: ◀ ▶ слева (под левый большой палец), педаль тормоза справа.
 ## Режим «Наклон»: рулим наклоном телефона, касание правой половины экрана — тормоз.
+## Режим «Ведение» (v2.6, по умолчанию): палец в любом месте нижней части экрана тянут
+## влево-вправо — машина едет следом, как курсор за тачпадом. Тормоз — педаль в углу.
 ## Поддерживается мультитач: можно одновременно рулить и тормозить.
 ## Зоны нажатия намного больше нарисованных кнопок, чтобы не промахиваться.
 
@@ -19,6 +21,9 @@ var _run_t: float = 0.0
 const SWIPE_DIST := 48.0         # столько пикселей по горизонтали — уже свайп
 const SWIPE_NEXT := 120.0        # протянул дальше — ещё одна полоса
 const HOLD_TIME := 0.16          # держит палец на месте — тормоз
+var _drag_index: int = -1        # режим «Ведение»: какой палец ведёт машину
+var _drag_start: Vector2 = Vector2.ZERO
+var _drag_pos: Vector2 = Vector2.ZERO
 
 
 var _has_nitro: bool = false
@@ -38,6 +43,7 @@ func _process(delta: float) -> void:
 	if paused and not _touches.is_empty():
 		_touches.clear()
 		_swipes.clear()
+		_drag_index = -1
 		MobileInput.release_all()
 	if not paused:
 		_run_t += delta
@@ -95,6 +101,9 @@ func _zone(pos: Vector2) -> String:
 	var mode := MobileInput.get_mode()
 	if mode == "swipe":
 		return "swipe"
+	if mode == "drag":
+		# Педаль с запасом вокруг, всё остальное внизу — зона ведения
+		return "brake" if _pedal_rect().grow(36.0).has_point(pos) else "drag"
 	var brake_side: bool = (pos.x < size.x * 0.5) if _mir() else (pos.x > size.x * 0.5)
 	if mode == "tilt":
 		return "brake" if brake_side else ""
@@ -119,15 +128,32 @@ func _input(event: InputEvent) -> void:
 			_touches[event.index] = event.position
 			if MobileInput.get_mode() == "swipe" and _zone(event.position) == "swipe":
 				_swipes[event.index] = {"anchor": event.position, "start": event.position, "t0": _t, "swiped": false, "moved": false}
+			if _drag_index < 0 and MobileInput.get_mode() == "drag" and _zone(event.position) == "drag":
+				_drag_index = event.index
+				_drag_start = event.position
+				_drag_pos = event.position
+				MobileInput.drag_dx = 0.0
+				MobileInput.drag_active = true
 		else:
 			_touches.erase(event.index)
 			_swipes.erase(event.index)
+			if event.index == _drag_index:
+				_end_drag()
 		_recompute()
 	elif event is InputEventScreenDrag:
 		_touches[event.index] = event.position
 		if _swipes.has(event.index):
 			_track_swipe(event.index, event.position)
+		if event.index == _drag_index:
+			_drag_pos = event.position
+			MobileInput.drag_dx = event.position.x - _drag_start.x
 		_recompute()
+
+
+func _end_drag() -> void:
+	_drag_index = -1
+	MobileInput.drag_active = false
+	MobileInput.drag_dx = 0.0
 
 
 ## Свайп влево-вправо — перестроиться на полосу (длинный свайп — на две)
@@ -204,6 +230,11 @@ func _draw() -> void:
 		_draw_swipe_hint()
 		_draw_horn(_horn_center(), MobileInput.horn)
 		return
+	if mode == "drag":
+		_draw_drag()
+		_draw_pedal(_pedal_rect(), MobileInput.touch_brake)
+		_draw_horn(_horn_center(), MobileInput.horn)
+		return
 	if mode != "tilt":
 		_draw_arrow_button(_left_center(), -1, MobileInput.touch_steer < -0.1)
 		_draw_arrow_button(_right_center(), 1, MobileInput.touch_steer > 0.1)
@@ -226,6 +257,24 @@ func _draw_swipe_hint() -> void:
 		var br := Rect2(c - Vector2(70, 60 if a > 0.0 else 22), Vector2(140, 40))
 		Art.rrect(self, br, Color(Art.RED, 0.85), 14)
 		Art.text_center(self, br.get_center(), "ТОРМОЗ", 16, Art.INK, true)
+
+
+## Режим «Ведение»: подсказка первые секунды заезда и след пальца, пока он на экране
+func _draw_drag() -> void:
+	var ins := MobileInput.safe_insets(get_viewport())
+	var a := clampf(1.0 - (_run_t - 7.0) / 1.5, 0.0, 1.0)
+	if a > 0.0:
+		var c := Vector2(size.x / 2.0, size.y - MARGIN - ins.w - 26.0)
+		var r := Rect2(c - Vector2(250, 22), Vector2(500, 44))
+		Art.rrect(self, r, Color(Art.UI_PANEL, 0.6 * a), 22)
+		Art.text_center(self, c, "ведите пальцем ←  → — машина едет следом", 16, Color(Art.UI_TEXT, 0.9 * a), true)
+	if _drag_index < 0:
+		return
+	var y := _drag_pos.y
+	draw_line(Vector2(_drag_start.x, y), Vector2(_drag_pos.x, y), Color(Art.ORANGE, 0.35), 4.0, true)
+	draw_circle(Vector2(_drag_start.x, y), 6.0, Color(Art.UI_TEXT, 0.3))
+	draw_circle(_drag_pos, 30.0, Color(Art.ORANGE, 0.18))
+	draw_arc(_drag_pos, 30.0, 0, TAU, 32, Color(Art.ORANGE, 0.7), 3.0, true)
 
 
 func _draw_nitro(c: Vector2, pressed: bool) -> void:
